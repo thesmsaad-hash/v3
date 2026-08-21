@@ -12,10 +12,11 @@ export const Resume: React.FC = () => {
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
       <SEO
-        title="Resume & Skills Matrix — SM SAAD"
-        description="Professional resume, skills matrix, Arena Animation training, and multidisciplinary capabilities of SM SAAD (Video Editor, VFX Compositing Artist & Web Developer)."
+        title="Resume & Technical Skills Matrix — SM SAAD"
+        description="Professional resume, technical skills matrix, Arena Animation training, and post-production capabilities of SM SAAD (Video Editor, VFX Compositor & Web Developer)."
         keywords="SM SAAD Resume, Video Editing Skills, VFX Compositing Skills, React Skills, Arena Animation Certification, SM SAAD Qualifications"
         canonical="https://smsaad.online/resume"
+        breadcrumbs={[{ name: 'Resume & Skills', url: '/resume' }]}
       />
       
       {/* HERO */}

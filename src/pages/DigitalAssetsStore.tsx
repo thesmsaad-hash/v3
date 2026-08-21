@@ -86,6 +86,39 @@ export const DigitalAssetsStore: React.FC = () => {
 
   return (
     <div className="space-y-16 md:space-y-24 pb-16 bg-north-bg text-north-black min-h-screen">
+      <SEO
+        title="Free Digital Assets, VFX Overlays & Editing Presets"
+        description="Download 100% free 4K cinematic film grain, kinetic title animations, YouTube thumbnail templates, Premiere Pro presets, and React web starter kits by SM SAAD."
+        keywords="Free VFX overlays, 4K film grain download, video editing presets, Premiere Pro templates, After Effects mogrt, motion graphics assets, YouTube thumbnail PSD, React portfolio template free, creator assets"
+        canonical="https://smsaad.online/assets"
+        breadcrumbs={[{ name: 'Free Digital Assets Store', url: '/assets' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Free Creator Digital Assets Store',
+          description: 'Free VFX overlays, motion design presets, web starter kits, and creator tools by SM SAAD.',
+          url: 'https://smsaad.online/assets',
+          mainEntity: {
+            '@type': 'ItemList',
+            itemListElement: assets.map((a, i) => ({
+              '@type': 'ListItem',
+              position: i + 1,
+              item: {
+                '@type': 'Product',
+                name: a.title,
+                description: a.description,
+                category: a.category,
+                offers: {
+                  '@type': 'Offer',
+                  price: '0.00',
+                  priceCurrency: 'USD',
+                  availability: 'https://schema.org/InStock',
+                },
+              },
+            })),
+          },
+        }}
+      />
       
       {/* Toast Notification */}
       {downloadSuccess && (

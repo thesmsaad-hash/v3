@@ -10,8 +10,9 @@ export const About: React.FC = () => {
       <SEO
         title="About SM SAAD — Video Editor, VFX Artist & Web Developer"
         description="Learn about SM SAAD's background as a Video Editor, VFX Compositing Artist, and Web Developer trained at Arena Animation, specializing in visual post-production and digital product development."
-        keywords="About SM SAAD, SM SAAD Biography, Video Editing Professional, VFX Artist Arena Animation, Multidisciplinary Creator"
+        keywords="About SM SAAD, SM SAAD Biography, Video Editing Professional, VFX Artist Arena Animation, Multidisciplinary Creator, hire video editor"
         canonical="https://smsaad.online/about"
+        breadcrumbs={[{ name: 'About', url: '/about' }]}
       />
       
       {/* 1. HERO */}

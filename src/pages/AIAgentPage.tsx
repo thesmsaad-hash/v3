@@ -100,8 +100,23 @@ This AI agent is connected directly to the real-time knowledge graph of **smsaad
   return (
     <>
       <SEO
-        title="AI Content & Site Intelligence Agent | SM SAAD"
+        title="AI Content & Site Intelligence Agent — Real-Time Knowledge Hub"
         description="Deeply analyze articles, technical blogs, video editing techniques, VFX principles, free digital assets, and portfolio data with SM SAAD's AI Site Agent."
+        keywords="AI site agent, video editing analyzer, VFX article summary, digital assets search, SM SAAD AI, knowledge graph"
+        canonical="https://smsaad.online/agent"
+        breadcrumbs={[{ name: 'AI Site Agent', url: '/agent' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'SM SAAD AI Site & Content Intelligence Agent',
+          operatingSystem: 'All Modern Web Browsers',
+          applicationCategory: 'BusinessApplication / DeveloperApplication',
+          offers: {
+            '@type': 'Offer',
+            price: '0.00',
+            priceCurrency: 'USD',
+          },
+        }}
       />
 
       <div className="max-w-container mx-auto px-4 py-8 md:py-14 border-x border-north-black">

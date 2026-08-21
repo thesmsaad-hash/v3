@@ -80,9 +80,29 @@ export const Home: React.FC = () => {
   return (
     <div className="bg-north-bg text-north-black overflow-hidden">
       <SEO
-        title="SM SAAD — Video Editor, VFX Artist & Web Developer"
-        description="SM SAAD is a Video Editor, VFX Compositing Artist and Web Developer combining visual post-production, motion graphics, React, WordPress, and AI workflows at smsaad.online."
-        keywords="SM SAAD, Video Editor, VFX Compositing Artist, Web Developer, Motion Graphics, Post Production, React Developer, WordPress Developer, smsaad.online"
+        title="Video Editor, VFX Compositor & Web Developer"
+        description="SM SAAD is a multidisciplinary Video Editor, VFX Compositing Artist, and Full-Stack Web Developer delivering narrative post-production, motion graphics, React applications, and free creator toolkits."
+        keywords="SM SAAD, Video Editor, VFX Compositor, Motion Graphics Artist, Freelance Web Developer, DaVinci Resolve color grading, Premiere Pro video editing, After Effects VFX, React portfolio, free VFX assets, smsaad.online"
+        canonical="https://smsaad.online/"
+        breadcrumbs={[]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'ProfessionalService',
+          name: 'SM SAAD — Creative Video & Web Development Studio',
+          image: 'https://smsaad.online/assets/images/hero.jpg',
+          url: 'https://smsaad.online',
+          priceRange: '$$',
+          address: {
+            '@type': 'PostalAddress',
+            addressCountry: 'Online / Remote Global',
+          },
+          openingHoursSpecification: {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            opens: '00:00',
+            closes: '23:59',
+          },
+        }}
       />
 
       {/* 1. ULTRA-PREMIUM HERO SECTION */}

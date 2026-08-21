@@ -1,4 +1,20 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/*
 
+# Common Bot Directives
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+
+User-agent: Applebot
+Allow: /
+Disallow: /admin
+
+# Sitemap Location
 Sitemap: https://smsaad.online/sitemap.xml

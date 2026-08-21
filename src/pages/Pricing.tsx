@@ -1,11 +1,26 @@
 import React from 'react';
 import { PricingCard } from '../components/PricingCard';
 import { FaqAccordion } from '../components/FaqAccordion';
+import { SEO } from '../components/SEO';
 import { pricingData, faqsData, PricingPlan } from '../data/siteData';
 
 export const Pricing: React.FC = () => {
   return (
     <div className="space-y-20 md:space-y-32 pb-10">
+      <SEO
+        title="Pricing & Packages — Video Editing, VFX & Web Development"
+        description="Transparent rates and custom scopes for Video Editing, VFX Compositing, Motion Graphics, and Web Development services by SM SAAD."
+        keywords="video editing rates, hire vfx artist cost, freelance web developer pricing, YouTube editor pricing, motion design quotes, SM SAAD pricing"
+        canonical="https://smsaad.online/pricing"
+        breadcrumbs={[{ name: 'Pricing & Packages', url: '/pricing' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: 'Services & Pricing Plans',
+          description: 'Pricing and packages for Video Editing, VFX Compositing, and Web Development by SM SAAD.',
+          url: 'https://smsaad.online/pricing',
+        }}
+      />
       
       {/* HERO */}
       <section className="max-w-container mx-auto px-4 sm:px-6 pt-8 md:pt-16">

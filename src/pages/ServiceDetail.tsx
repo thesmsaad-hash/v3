@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle, Film, Wrench } from 'lucide-react';
 import { Button } from '../components/Button';
+import { SEO } from '../components/SEO';
 import { servicesData, projectsData, toolsData } from '../data/siteData';
 
 export const ServiceDetail: React.FC = () => {
@@ -9,8 +10,42 @@ export const ServiceDetail: React.FC = () => {
   const service = servicesData.find((s) => s.id === id) || servicesData[0];
   const featuredProject = projectsData[0];
 
+  const serviceSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    serviceType: service.title,
+    provider: {
+      '@type': 'Person',
+      name: 'SM SAAD',
+      url: 'https://smsaad.online',
+    },
+    description: service.description,
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: service.title,
+      itemListElement: (service.details || []).map((detail) => ({
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: detail,
+        },
+      })),
+    },
+  };
+
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
+      <SEO
+        title={`${service.title} Services — Scope & Deliverables`}
+        description={`${service.description} Deliverables include: ${(service.details || []).join(', ')}.`}
+        keywords={`${service.title}, ${service.title} freelancer, hire ${service.title}, SM SAAD services`}
+        canonical={`https://smsaad.online/services/${service.id}`}
+        breadcrumbs={[
+          { name: 'Services', url: '/services' },
+          { name: service.title, url: `/services/${service.id}` },
+        ]}
+        schema={serviceSchema}
+      />
       
       {/* HERO */}
       <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 md:pt-16">

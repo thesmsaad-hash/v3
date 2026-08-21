@@ -119,10 +119,23 @@ export const Blogs: React.FC = () => {
   return (
     <div className="space-y-12 md:space-y-16 pb-20 bg-north-bg text-north-black min-h-screen">
       <SEO
-        title="Creative Blog — Video Editing, VFX & Tech Insights | SM SAAD"
-        description="Read post-production, VFX compositing, motion graphics, and AI workflow articles written by SM SAAD on smsaad.online."
-        keywords="SM SAAD Blog, Video Editing Blog, VFX Compositing Articles, Motion Graphics Tips, AI Creative Workflow Blog"
+        title="Articles & Technical Insights — Video Editing, VFX & Web Development"
+        description="Explore in-depth technical guides on video editing pacing, VFX compositing, sound design, motion graphics, and AI-assisted workflows by SM SAAD."
+        keywords="video editing tutorials, VFX compositing breakdown, DaVinci Resolve color grading guide, Premiere Pro workflow, motion design articles, AI creator tools"
         canonical="https://smsaad.online/blogs"
+        breadcrumbs={[{ name: 'Articles & Blogs', url: '/blogs' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'Blog',
+          name: 'SM SAAD Technical Creative Blog',
+          description: 'Insights and tutorials on post-production, VFX compositing, and modern web applications.',
+          url: 'https://smsaad.online/blogs',
+          author: {
+            '@type': 'Person',
+            name: 'SM SAAD',
+            url: 'https://smsaad.online',
+          },
+        }}
       />
 
       {/* HERO SECTION */}

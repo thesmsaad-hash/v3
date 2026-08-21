@@ -8,10 +8,26 @@ export const Services: React.FC = () => {
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
       <SEO
-        title="Services — Video Editing, VFX Compositing & Web Development | SM SAAD"
+        title="Services — Video Editing, VFX Compositing & Web Development"
         description="Professional post-production and digital services by SM SAAD: Video Editing, VFX & Compositing, Motion Graphics, Web Development, AI Workflows, Social Content, and Thumbnail Design."
         keywords="SM SAAD Services, Video Editing Services, VFX Compositing Services, Motion Graphics Services, Web Development Services, React Developer Services, WordPress Development"
         canonical="https://smsaad.online/services"
+        breadcrumbs={[{ name: 'Services', url: '/services' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: 'Professional Services by SM SAAD',
+          itemListElement: servicesData.map((s, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            item: {
+              '@type': 'Service',
+              name: s.title,
+              description: s.description,
+              url: `https://smsaad.online/services/${s.id}`,
+            },
+          })),
+        }}
       />
       
       {/* HERO */}

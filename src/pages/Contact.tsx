@@ -13,6 +13,14 @@ export const Contact: React.FC = () => {
         description="Have a video editing, VFX compositing, or web development project in mind? Contact SM SAAD directly on smsaad.online or send a project inquiry."
         keywords="Contact SM SAAD, Hire Video Editor, Hire VFX Compositing Artist, Hire Web Developer, Start a Video Project"
         canonical="https://smsaad.online/contact"
+        breadcrumbs={[{ name: 'Contact', url: '/contact' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'ContactPage',
+          name: 'Contact SM SAAD',
+          description: 'Inquiry and project booking page for SM SAAD.',
+          url: 'https://smsaad.online/contact',
+        }}
       />
       
       {/* HERO */}

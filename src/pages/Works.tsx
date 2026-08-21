@@ -18,10 +18,23 @@ export const Works: React.FC = () => {
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
       <SEO
-        title="Projects & Work Showcase — Synapto | SM SAAD"
-        description="Explore recent projects by SM SAAD, including Synapto (an experimental knowledge-management web application exploring notes, ideas, and connected information)."
-        keywords="SM SAAD Projects, Synapto Knowledge Management, Synapto Web Application, SM SAAD Portfolio Projects"
+        title="Projects & Work Showcase — Synapto Knowledge App"
+        description="Explore projects by SM SAAD, including Synapto (an experimental knowledge-management web application exploring notes, ideas, and connected knowledge graph)."
+        keywords="SM SAAD Projects, Synapto Knowledge Management, Synapto Web Application, React projects, TypeScript web app, SM SAAD Portfolio Projects"
         canonical="https://smsaad.online/works"
+        breadcrumbs={[{ name: 'Projects & Works', url: '/works' }]}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'CreativeWork',
+          name: 'Synapto Knowledge Management Application',
+          author: {
+            '@type': 'Person',
+            name: 'SM SAAD',
+            url: 'https://smsaad.online',
+          },
+          description: 'An experimental knowledge-management application focused on organizing notes, ideas and connected knowledge.',
+          applicationCategory: 'Productivity & Knowledge Management',
+        }}
       />
       
       {/* HERO */}

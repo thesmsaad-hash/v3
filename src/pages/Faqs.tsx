@@ -1,10 +1,32 @@
 import React from 'react';
 import { FaqAccordion } from '../components/FaqAccordion';
+import { SEO } from '../components/SEO';
 import { faqsData } from '../data/siteData';
 
 export const Faqs: React.FC = () => {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqsData.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer,
+      },
+    })),
+  };
+
   return (
     <div className="space-y-20 md:space-y-32 pb-10">
+      <SEO
+        title="Frequently Asked Questions (FAQ) — SM SAAD"
+        description="Frequently asked questions regarding Video Editing, VFX Compositing, React Web Development, Synapto app, and project collaborations with SM SAAD."
+        keywords="SM SAAD FAQ, video editing questions, hiring a vfx artist FAQ, web development process FAQ, Synapto questions"
+        canonical="https://smsaad.online/faqs"
+        breadcrumbs={[{ name: 'FAQs', url: '/faqs' }]}
+        schema={faqSchema}
+      />
       
       {/* HERO */}
       <section className="max-w-container mx-auto px-4 sm:px-6 pt-8 md:pt-16">
