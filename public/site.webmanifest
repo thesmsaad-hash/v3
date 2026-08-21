@@ -1,0 +1,16 @@
+{
+  "name": "SM SAAD — Official Portfolio",
+  "short_name": "SM SAAD",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F1EB",
+  "theme_color": "#000000"
+}
