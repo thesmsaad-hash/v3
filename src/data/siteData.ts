@@ -408,12 +408,12 @@ export const projectsData: ProjectItem[] = [
 export const blogsData: BlogPost[] = [
   {
     id: "1",
-    title: "5 Editing Techniques That Make Short-Form Videos More Engaging",
-    excerpt: "Practical cutting techniques, visual hooks, sound cues, and pacing structures that retain audience attention on modern social platforms.",
-    category: "Video Editing",
+    title: "Kalakar AI Review: AI Captioning Software for Desi Creators",
+    excerpt: "Discover Kalakar AI, an AI captioning platform built for Desi creators with multilingual captions, templates, audio enhancement, and professional editing integrations.",
+    category: "Web & AI",
     date: "2026",
-    readTime: "4 min read",
-    image: "/assets/images/works1.jpg",
+    readTime: "5 min read",
+    image: "/assets/images/works4.jpg",
     author: "SM SAAD"
   },
   {
