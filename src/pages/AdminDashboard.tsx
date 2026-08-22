@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowUpRight, LayoutGrid, List, Sparkles, Image as ImageIcon, Package, Download, FolderPlus, Tag,
   Bold, Italic, Heading1, Heading2, Heading3, ListOrdered, Quote, Code, Check, X, BookOpen, Send, ShieldCheck,
   Split, HelpCircle, AlertCircle, CheckSquare, Layers, Sparkle, PlusCircle, Maximize2, Upload,
-  Mail, Users, UserPlus, UserCheck, Copy
+  Mail, Users, UserPlus, UserCheck, Copy, Radio, Key, Inbox
 } from 'lucide-react';
 import {
   getStoredBlogPosts,
@@ -31,6 +31,13 @@ import {
   syncSubscribersFromSupabase,
   BlogSubscriber
 } from '../utils/subscriberStorage';
+import {
+  broadcastNewBlogPost,
+  generateBlogEmailHTML,
+  openClientBroadcastMail,
+  getStoredResendKey,
+  saveStoredResendKey
+} from '../utils/emailBroadcaster';
 import { SEO } from '../components/SEO';
 import { AdminAuthGuard } from '../components/AdminAuthGuard';
 
@@ -64,6 +71,12 @@ export const AdminDashboard: React.FC = () => {
   const [deleteSubConfirmId, setDeleteSubConfirmId] = useState<string | null>(null);
   const [copiedSubId, setCopiedSubId] = useState<string | null>(null);
 
+  // EMAIL BROADCAST STATES
+  const [notifySubscribersOnPublish, setNotifySubscribersOnPublish] = useState(true);
+  const [resendApiKey, setResendApiKey] = useState('');
+  const [previewNewsletterPost, setPreviewNewsletterPost] = useState<ExtendedBlogPost | null>(null);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
   // Toast Notification State
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -72,6 +85,7 @@ export const AdminDashboard: React.FC = () => {
     setPosts(getStoredBlogPosts());
     setAssets(getStoredDigitalAssets());
     setSubscribers(getStoredSubscribers());
+    setResendApiKey(getStoredResendKey());
 
     // Then sync from Supabase and refresh if newer data exists
     syncBlogPostsFromSupabase().then((remote) => {
@@ -147,7 +161,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
     setIsBlogEditorOpen(true);
   };
 
-  const handleSaveBlog = (e: React.FormEvent) => {
+  const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPost.title || !currentPost.excerpt) {
       alert('Please provide a title and excerpt.');
@@ -160,17 +174,43 @@ Write your article introduction here explaining key concepts, goals, and visual 
       category: currentPost.category || 'Video Editing',
       excerpt: currentPost.excerpt || '',
       content: currentPost.content || '',
-      date: currentPost.date || new Date().getFullYear().toString(),
+      date: currentPost.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       readTime: currentPost.readTime || '5 min read',
       image: currentPost.image || '/assets/images/works1.jpg',
       author: currentPost.author || 'SM SAAD',
       status: currentPost.status || 'published',
     };
 
-    const updated = saveStoredBlogPost(postToSave);
+    const isPublishing = postToSave.status === 'published';
+    const updated = await saveStoredBlogPost(postToSave);
     setPosts(updated);
     setIsBlogEditorOpen(false);
-    showNotify(`Article "${postToSave.title}" ${postToSave.status === 'published' ? 'Published' : 'Saved as Draft'}!`);
+
+    if (isPublishing && notifySubscribersOnPublish && subscribers.length > 0) {
+      showNotify(`Article published! Broadcasting email to ${subscribers.length} subscriber(s)...`);
+      const broadcastRes = await broadcastNewBlogPost(postToSave);
+      showNotify(broadcastRes.message);
+    } else {
+      showNotify(`Article "${postToSave.title}" ${postToSave.status === 'published' ? 'Published' : 'Saved as Draft'}!`);
+    }
+  };
+
+  const handleManualBroadcastArticle = async (post: ExtendedBlogPost) => {
+    if (subscribers.length === 0) {
+      showNotify('No subscribers found to send broadcast.');
+      return;
+    }
+    setIsBroadcasting(true);
+    showNotify(`Broadcasting "${post.title}" to ${subscribers.length} subscriber(s)...`);
+    const res = await broadcastNewBlogPost(post);
+    setIsBroadcasting(false);
+    showNotify(res.message);
+  };
+
+  const handleSaveResendKeySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveStoredResendKey(resendApiKey);
+    showNotify('Resend API Key updated and saved securely!');
   };
 
   const handleToggleBlogStatus = (post: ExtendedBlogPost) => {
@@ -799,7 +839,126 @@ Write your article introduction here explaining key concepts, goals, and visual 
         {/* TAB 3: BLOG SUBSCRIBERS HUB */}
         {activeMainTab === 'subscribers' && (
           <div className="space-y-6">
-            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8">
+            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 space-y-6">
+              
+              {/* AUTOMATED EMAIL BROADCAST CONTROL CENTER */}
+              <div className="border border-north-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-north-dark-sand pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-north-lime text-north-black border border-north-black flex items-center justify-center font-bold">
+                      <Radio className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="bg-north-black text-north-lime font-heading font-extrabold text-[10px] uppercase px-2 py-0.5 border border-north-black">
+                          AUTOMATED BROADCAST
+                        </span>
+                        <span className="text-xs font-heading font-bold uppercase text-north-gray">
+                          {subscribers.length} Active Subscribers
+                        </span>
+                      </div>
+                      <h2 className="font-heading text-xl sm:text-2xl font-black uppercase text-north-black mt-0.5">
+                        Automated New Blog Post Email Delivery
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-heading font-bold text-north-black uppercase bg-north-bg px-3 py-1.5 border border-north-black flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                      Auto-Notify on Publish Active
+                    </span>
+                  </div>
+                </div>
+
+                {/* API Key & Broadcast Controls Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+                  {/* Left: Resend Key Configuration */}
+                  <div className="lg:col-span-6 bg-north-bg p-4 border border-north-black space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-heading font-bold text-xs uppercase text-north-black flex items-center gap-1.5">
+                        <Key className="w-4 h-4 text-north-lime-dark" />
+                        <span>Resend Email API Key</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-north-gray">
+                        {resendApiKey ? '● Connected' : '○ Free Tier Available'}
+                      </span>
+                    </div>
+                    <form onSubmit={handleSaveResendKeySubmit} className="flex gap-2">
+                      <input
+                        type="password"
+                        placeholder="Paste Resend API Key (re_...)"
+                        value={resendApiKey}
+                        onChange={(e) => setResendApiKey(e.target.value)}
+                        className="flex-1 p-2.5 bg-white border border-north-black text-xs font-mono focus:outline-none focus:ring-1 focus:ring-north-lime"
+                      />
+                      <button
+                        type="submit"
+                        className="btn-north bg-north-black text-white hover:bg-north-lime hover:text-north-black text-xs font-heading font-bold uppercase py-2 px-4 whitespace-nowrap"
+                      >
+                        Save Key
+                      </button>
+                    </form>
+                    <p className="text-[11px] text-north-gray leading-tight">
+                      When provided, newly published articles are sent directly to all {subscribers.length} subscriber(s). If empty, 1-click email client dispatch is ready.
+                    </p>
+                  </div>
+
+                  {/* Right: Broadcast Any Published Article */}
+                  <div className="lg:col-span-6 bg-north-bg p-4 border border-north-black space-y-3">
+                    <span className="font-heading font-bold text-xs uppercase text-north-black flex items-center gap-1.5">
+                      <Send className="w-4 h-4 text-north-lime-dark" />
+                      <span>Broadcast Published Article</span>
+                    </span>
+
+                    {posts.filter((p) => p.status === 'published').length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <select
+                            id="broadcast-article-select"
+                            className="flex-1 p-2 bg-white border border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
+                          >
+                            {posts.filter((p) => p.status === 'published').map((post) => (
+                              <option key={post.id} value={post.id}>
+                                {post.title}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
+                              const targetPost = posts.find((p) => p.id === sel?.value);
+                              if (targetPost) setPreviewNewsletterPost(targetPost);
+                            }}
+                            className="btn-north bg-white text-north-black hover:bg-north-lime text-xs font-heading font-bold uppercase py-2 px-3 whitespace-nowrap"
+                          >
+                            Preview Email
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isBroadcasting}
+                            onClick={() => {
+                              const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
+                              const targetPost = posts.find((p) => p.id === sel?.value);
+                              if (targetPost) handleManualBroadcastArticle(targetPost);
+                            }}
+                            className="btn-north bg-north-lime text-north-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2 px-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
+                          >
+                            {isBroadcasting ? 'Sending...' : 'Send Broadcast'}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-north-gray leading-tight">
+                          Select any published article to immediately trigger an automated email newsletter to all subscribers.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-north-gray">No published articles yet. Publish an article first to broadcast.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* TOP ACTION & SEARCH BAR */}
               <div className="border border-north-black bg-white p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <div className="relative flex-1">
@@ -1391,13 +1550,28 @@ Write your article introduction here explaining key concepts, goals, and visual 
                 </div>
 
                 {/* FORM ACTIONS FOOTER */}
-                <div className="pt-4 border-t-2 border-north-black flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-xs font-heading font-bold uppercase text-north-gray">
-                    <ShieldCheck className="w-4 h-4 text-north-lime-dark" />
-                    <span>Auto-saved locally</span>
+                <div className="pt-4 border-t-2 border-north-black flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
+                    <div className="flex items-center space-x-2 text-xs font-heading font-bold uppercase text-north-gray">
+                      <ShieldCheck className="w-4 h-4 text-north-lime-dark" />
+                      <span>Auto-saved locally</span>
+                    </div>
+
+                    <label className="flex items-center space-x-2 cursor-pointer bg-north-bg px-3 py-1.5 border border-north-black text-xs font-heading font-bold uppercase select-none">
+                      <input
+                        type="checkbox"
+                        checked={notifySubscribersOnPublish}
+                        onChange={(e) => setNotifySubscribersOnPublish(e.target.checked)}
+                        className="accent-north-black w-4 h-4 cursor-pointer"
+                      />
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-north-lime-dark" />
+                        <span>Email {subscribers.length} subscriber(s)</span>
+                      </span>
+                    </label>
                   </div>
 
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
                     <button
                       type="button"
                       onClick={() => setIsBlogEditorOpen(false)}
@@ -1410,7 +1584,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
                       className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-6 inline-flex items-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
                       <Send className="w-4 h-4 mr-2" />
-                      <span>{currentPost.status === 'published' ? 'Publish Article Now' : 'Save Draft'}</span>
+                      <span>{currentPost.status === 'published' ? 'Publish & Broadcast' : 'Save Draft'}</span>
                     </button>
                   </div>
                 </div>
@@ -1593,6 +1767,69 @@ Write your article introduction here explaining key concepts, goals, and visual 
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* PREVIEW NEWSLETTER EMAIL MODAL */}
+        {previewNewsletterPost && (
+          <div className="fixed inset-0 z-50 bg-north-black/85 flex items-center justify-center p-3 sm:p-6 overflow-y-auto backdrop-blur-sm">
+            <div className="border-2 border-north-black bg-white w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+              <div className="border-b border-north-black p-4 sm:p-5 bg-north-bg flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="bg-north-black text-north-lime font-heading font-extrabold text-[10px] uppercase px-2 py-0.5 border border-north-black">
+                    EMAIL PREVIEW
+                  </span>
+                  <h3 className="font-heading font-extrabold text-base sm:text-lg uppercase text-north-black">
+                    Automated Subscriber Newsletter
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setPreviewNewsletterPost(null)}
+                  className="p-1.5 border border-north-black bg-white hover:bg-north-black hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Email Content Frame */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-north-bg space-y-4">
+                <div className="bg-white border-2 border-north-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                  <div
+                    className="p-2"
+                    dangerouslySetInnerHTML={{
+                      __html: generateBlogEmailHTML(previewNewsletterPost)
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="p-4 border-t-2 border-north-black bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-xs text-north-gray font-mono">
+                  Delivering to {subscribers.length} subscriber(s)
+                </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => openClientBroadcastMail(previewNewsletterPost)}
+                    className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2 px-4"
+                  >
+                    Open in Email Client (Gmail/BCC)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBroadcasting}
+                    onClick={async () => {
+                      await handleManualBroadcastArticle(previewNewsletterPost);
+                      setPreviewNewsletterPost(null);
+                    }}
+                    className="btn-north bg-north-lime text-north-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2 px-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    {isBroadcasting ? 'Sending...' : 'Send Broadcast Now'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
