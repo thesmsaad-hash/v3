@@ -31,6 +31,7 @@ export interface AISettings {
   customEndpoint?: string;
   temperature?: number;
   speechEnabled?: boolean;
+  voiceGender?: 'female' | 'male' | 'any';
 }
 
 const SETTINGS_KEY = 'smsaad_ai_agent_settings';
@@ -45,6 +46,7 @@ export const getStoredAISettings = (): AISettings => {
   return {
     provider: 'built-in',
     speechEnabled: false,
+    voiceGender: 'female',
     temperature: 0.7,
   };
 };

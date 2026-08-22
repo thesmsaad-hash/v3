@@ -28,6 +28,7 @@ import {
   Share2,
   CheckCircle
 } from 'lucide-react';
+import { speechEngine } from '../../utils/speechEngine';
 import {
   AgentMessage,
   processUserQuery,
@@ -185,23 +186,30 @@ Select a quick topic below or type any question:`,
   };
 
   const speakText = (text: string, id?: string) => {
-    if (!('speechSynthesis' in window)) return;
-
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    if (speechEngine.isSpeaking() && isSpeakingId === id) {
+      speechEngine.stop();
       setIsSpeakingId(null);
       return;
     }
 
-    const cleanText = text.replace(/[*#`_\[\]()>|]/g, '').slice(0, 400);
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
-    utterance.onend = () => setIsSpeakingId(null);
-    utterance.onerror = () => setIsSpeakingId(null);
-
     if (id) setIsSpeakingId(id);
-    window.speechSynthesis.speak(utterance);
+
+    // Auto select high-quality natural voice based on preference
+    speechEngine.pickBestVoice(settings.voiceGender || 'female');
+
+    speechEngine.speak(text, {
+      onStart: () => {
+        if (id) setIsSpeakingId(id);
+      },
+      onEnd: () => {
+        setIsSpeakingId(null);
+      },
+      onError: () => {
+        setIsSpeakingId(null);
+      },
+      rate: 1.0,
+      pitch: 1.02
+    });
   };
 
   const clearChat = () => {
@@ -494,27 +502,50 @@ Select a quick topic below or type any question:`,
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!!settings.speechEnabled}
+                  <div className="pt-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!settings.speechEnabled}
+                          onChange={(e) => {
+                            const updated = { ...settings, speechEnabled: e.target.checked };
+                            setSettings(updated);
+                            saveStoredAISettings(updated);
+                          }}
+                          className="accent-north-black"
+                        />
+                        <span className="font-semibold text-north-black">Auto-Voice Response (TTS)</span>
+                      </label>
+
+                      <button
+                        onClick={exportChat}
+                        className="inline-flex items-center gap-1 text-[11px] font-heading font-bold text-north-black hover:underline"
+                      >
+                        <Download className="w-3 h-3" /> Export Chat (.md)
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-heading font-bold uppercase text-north-gray mb-1">
+                        Voice Accent & Persona:
+                      </label>
+                      <select
+                        value={settings.voiceGender || 'female'}
                         onChange={(e) => {
-                          const updated = { ...settings, speechEnabled: e.target.checked };
+                          const val = e.target.value as 'female' | 'male' | 'any';
+                          const updated = { ...settings, voiceGender: val };
                           setSettings(updated);
                           saveStoredAISettings(updated);
+                          speechEngine.pickBestVoice(val);
                         }}
-                        className="accent-north-black"
-                      />
-                      <span>Enable Text-to-Speech Voice Playback</span>
-                    </label>
-
-                    <button
-                      onClick={exportChat}
-                      className="inline-flex items-center gap-1 text-[11px] font-heading font-bold text-north-black hover:underline"
-                    >
-                      <Download className="w-3 h-3" /> Export Chat (.md)
-                    </button>
+                        className="w-full bg-white border border-north-black px-2.5 py-1.5 rounded text-xs font-heading font-bold"
+                      >
+                        <option value="female">🎙️ Natural Neural Female (Jenny / Aria / Google US)</option>
+                        <option value="male">🎙️ Natural Neural Male (Guy / Christopher / Google UK)</option>
+                        <option value="any">✨ Highest Fidelity Device Voice (Auto Best)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -588,12 +619,23 @@ Select a quick topic below or type any question:`,
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => speakText(msg.text, msg.id)}
-                              className="hover:text-north-black transition-colors"
-                              title="Listen to text"
+                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-all ${
+                                isSpeakingId === msg.id
+                                  ? 'bg-north-lime text-north-black font-bold'
+                                  : 'hover:text-north-black text-north-gray'
+                              }`}
+                              title={isSpeakingId === msg.id ? 'Stop speaking' : 'Listen with Neural Voice'}
                               aria-label="Speak text"
                             >
                               {isSpeakingId === msg.id ? (
-                                <VolumeX className="w-3.5 h-3.5 text-north-green-dark" />
+                                <>
+                                  <VolumeX className="w-3.5 h-3.5" />
+                                  <span className="flex items-center gap-0.5 ml-0.5">
+                                    <span className="w-0.5 h-2 bg-north-black animate-pulse"></span>
+                                    <span className="w-0.5 h-3 bg-north-black animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                                    <span className="w-0.5 h-1.5 bg-north-black animate-pulse" style={{ animationDelay: '300ms' }}></span>
+                                  </span>
+                                </>
                               ) : (
                                 <Volume2 className="w-3.5 h-3.5" />
                               )}

@@ -14,8 +14,8 @@ import {
   Cpu,
   Layers,
   CheckCircle2,
-  FileText,
   Volume2,
+  VolumeX,
   Copy,
   Check
 } from 'lucide-react';
@@ -24,6 +24,7 @@ import { getLiveSiteKnowledge, ComprehensiveSiteKnowledge } from '../utils/aiKno
 import { processUserQuery, AgentMessage, getStoredAISettings } from '../utils/siteAIAgent';
 import { ChatMarkdown } from '../components/ChatAgent/ChatMarkdown';
 import { ChatCards } from '../components/ChatAgent/ChatCards';
+import { speechEngine } from '../utils/speechEngine';
 
 export const AIAgentPage: React.FC = () => {
   const [kb, setKb] = useState<ComprehensiveSiteKnowledge | null>(null);
@@ -32,6 +33,7 @@ export const AIAgentPage: React.FC = () => {
   const [conversation, setConversation] = useState<AgentMessage[]>([]);
   const [activeTab, setActiveTab] = useState<'agent' | 'articles-matrix' | 'site-graph'>('agent');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
 
   useEffect(() => {
     const liveKb = getLiveSiteKnowledge();
@@ -93,6 +95,23 @@ This AI agent is connected directly to the real-time knowledge graph of **smsaad
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleSpeak = (text: string, id: string) => {
+    if (speechEngine.isSpeaking() && isSpeakingId === id) {
+      speechEngine.stop();
+      setIsSpeakingId(null);
+      return;
+    }
+
+    setIsSpeakingId(id);
+    speechEngine.speak(text, {
+      onStart: () => setIsSpeakingId(id),
+      onEnd: () => setIsSpeakingId(null),
+      onError: () => setIsSpeakingId(null),
+      rate: 1.0,
+      pitch: 1.02
+    });
   };
 
   if (!kb) return null;
@@ -318,20 +337,49 @@ This AI agent is connected directly to the real-time knowledge graph of **smsaad
                             <span className="font-mono text-[10px]">
                               {msg.metadata?.modelUsed || 'Site Intelligence Engine'}
                             </span>
-                            <button
-                              onClick={() => handleCopy(msg.text, msg.id)}
-                              className="hover:text-north-black transition-colors flex items-center gap-1"
-                            >
-                              {copiedId === msg.id ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 text-green-600" /> Copied
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5" /> Copy Analysis
-                                </>
-                              )}
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleSpeak(msg.text, msg.id)}
+                                className={`transition-all flex items-center gap-1.5 px-2 py-0.5 rounded ${
+                                  isSpeakingId === msg.id
+                                    ? 'bg-north-lime text-north-black font-bold'
+                                    : 'hover:text-north-black text-north-gray'
+                                }`}
+                                title={isSpeakingId === msg.id ? 'Stop audio' : 'Listen with Neural Voice'}
+                              >
+                                {isSpeakingId === msg.id ? (
+                                  <>
+                                    <VolumeX className="w-3.5 h-3.5" />
+                                    <span>Speaking</span>
+                                    <span className="flex items-center gap-0.5 ml-0.5">
+                                      <span className="w-0.5 h-2 bg-north-black animate-pulse"></span>
+                                      <span className="w-0.5 h-3 bg-north-black animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                                      <span className="w-0.5 h-1.5 bg-north-black animate-pulse" style={{ animationDelay: '300ms' }}></span>
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                    <span>Listen</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => handleCopy(msg.text, msg.id)}
+                                className="hover:text-north-black transition-colors flex items-center gap-1"
+                              >
+                                {copiedId === msg.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-green-600" /> Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" /> Copy Analysis
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
