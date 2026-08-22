@@ -17,7 +17,7 @@ export interface BroadcastResult {
 const EMAIL_KEY_STORAGE = 'smsaad_email_api_key';
 
 export const getStoredResendKey = (): string => {
-  return localStorage.getItem(EMAIL_KEY_STORAGE) || localStorage.getItem('smsaad_resend_api_key') || '';
+  return localStorage.getItem(EMAIL_KEY_STORAGE) || localStorage.getItem('smsaad_resend_api_key') || (import.meta.env.VITE_BREVO_API_KEY || '');
 };
 
 export const saveStoredResendKey = (key: string): void => {
@@ -162,8 +162,8 @@ export const broadcastNewBlogPost = async (
   const emailList = subscribers.map((s) => s.email);
 
   if (apiKey) {
-    // 1. BREVO API (Detected if key starts with xkeysib- or is 64+ chars)
-    const isBrevo = apiKey.startsWith('xkeysib-') || apiKey.length > 60;
+    // 1. BREVO API (Detected if key starts with xkeysib-, xsmtpsib-, or is 50+ chars)
+    const isBrevo = apiKey.startsWith('xkeysib-') || apiKey.startsWith('xsmtpsib-') || apiKey.length > 50;
 
     if (isBrevo) {
       try {
