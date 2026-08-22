@@ -139,6 +139,45 @@ class SpeechEngine {
       .trim();
   }
 
+  private chunkQueue: string[] = [];
+  private currentChunkIndex: number = 0;
+  private isPlayingQueue: boolean = false;
+  private keepAliveInterval: any = null;
+
+  /**
+   * Split long text into natural sentence chunks to prevent Chrome speech synthesis timeout bugs
+   */
+  private splitIntoChunks(text: string, maxChunkLength = 180): string[] {
+    const sentences = text.match(/[^.!?\n]+[.!?\n]+|[^.!?\n]+$/g) || [text];
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    for (const sentence of sentences) {
+      const trimmed = sentence.trim();
+      if (!trimmed) continue;
+
+      if ((currentChunk + ' ' + trimmed).length <= maxChunkLength) {
+        currentChunk = currentChunk ? `${currentChunk} ${trimmed}` : trimmed;
+      } else {
+        if (currentChunk) chunks.push(currentChunk);
+        // If a single sentence is huge, split by commas or words
+        if (trimmed.length > maxChunkLength) {
+          const parts = trimmed.match(/.{1,160}(\s|$)/g) || [trimmed];
+          parts.forEach((p) => {
+            const pTrim = p.trim();
+            if (pTrim) chunks.push(pTrim);
+          });
+          currentChunk = '';
+        } else {
+          currentChunk = trimmed;
+        }
+      }
+    }
+
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks.length > 0 ? chunks : [text];
+  }
+
   public speak(
     text: string,
     options: {
@@ -149,42 +188,107 @@ class SpeechEngine {
       pitch?: number;
     } = {}
   ) {
-    if (!('speechSynthesis' in window)) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      if (options.onError) options.onError(new Error('Speech synthesis not supported in this browser.'));
+      return;
+    }
 
     this.stop();
 
-    const clean = this.cleanTextForSpeech(text);
-    if (!clean) return;
-
-    const utterance = new SpeechSynthesisUtterance(clean);
-    const voice = this.selectedVoice || this.pickBestVoice();
-    if (voice) {
-      utterance.voice = voice;
+    // Reload voices if not populated yet
+    if (this.voices.length === 0) {
+      this.voices = window.speechSynthesis.getVoices();
     }
 
-    utterance.rate = options.rate ?? 1.0;
-    utterance.pitch = options.pitch ?? 1.02;
-    utterance.volume = 1.0;
-
-    utterance.onstart = () => {
-      if (options.onStart) options.onStart();
-    };
-
-    utterance.onend = () => {
-      this.currentUtterance = null;
+    const clean = this.cleanTextForSpeech(text);
+    if (!clean) {
       if (options.onEnd) options.onEnd();
+      return;
+    }
+
+    this.chunkQueue = this.splitIntoChunks(clean);
+    this.currentChunkIndex = 0;
+    this.isPlayingQueue = true;
+
+    // Chrome synthesis engine keep-alive ticker
+    this.startKeepAlive();
+
+    const playNextChunk = () => {
+      if (!this.isPlayingQueue || this.currentChunkIndex >= this.chunkQueue.length) {
+        this.stop();
+        if (options.onEnd) options.onEnd();
+        return;
+      }
+
+      const chunkText = this.chunkQueue[this.currentChunkIndex];
+      const utterance = new SpeechSynthesisUtterance(chunkText);
+      const voice = this.selectedVoice || this.pickBestVoice();
+      if (voice) utterance.voice = voice;
+
+      utterance.rate = options.rate ?? 1.0;
+      utterance.pitch = options.pitch ?? 1.02;
+      utterance.volume = 1.0;
+
+      utterance.onstart = () => {
+        if (this.currentChunkIndex === 0 && options.onStart) {
+          options.onStart();
+        }
+      };
+
+      utterance.onend = () => {
+        this.currentChunkIndex++;
+        if (this.isPlayingQueue) {
+          playNextChunk();
+        }
+      };
+
+      utterance.onerror = (e) => {
+        // If canceled explicitly, don't trigger error
+        if (e.error === 'canceled' || e.error === 'interrupted') return;
+        this.stop();
+        if (options.onError) options.onError(e);
+      };
+
+      this.currentUtterance = utterance;
+
+      // Resume if paused
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
+      window.speechSynthesis.speak(utterance);
     };
 
-    utterance.onerror = (e) => {
-      this.currentUtterance = null;
-      if (options.onError) options.onError(e);
-    };
+    // Wake up synthesis
+    window.speechSynthesis.resume();
+    playNextChunk();
+  }
 
-    this.currentUtterance = utterance;
-    window.speechSynthesis.speak(utterance);
+  private startKeepAlive() {
+    this.stopKeepAlive();
+    this.keepAliveInterval = setInterval(() => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }
+    }, 10000);
+  }
+
+  private stopKeepAlive() {
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
   }
 
   public stop() {
+    this.isPlayingQueue = false;
+    this.chunkQueue = [];
+    this.currentChunkIndex = 0;
+    this.stopKeepAlive();
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       this.currentUtterance = null;
@@ -192,9 +296,7 @@ class SpeechEngine {
   }
 
   public isSpeaking(): boolean {
-    return typeof window !== 'undefined' && 'speechSynthesis' in window
-      ? window.speechSynthesis.speaking
-      : false;
+    return this.isPlayingQueue || (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis.speaking : false);
   }
 }
 

@@ -155,13 +155,17 @@ export const BlogPostDetail: React.FC = () => {
       speechEngine.stop();
       setIsSpeaking(false);
     } else if (post) {
-      const fullTextToRead = `${post.title}. In category ${post.category}. ${post.excerpt}. ${post.content || ''}`;
+      const fullTextToRead = `${post.title}. ${post.excerpt}. ${post.content || ''}`;
+      setIsSpeaking(true);
       speechEngine.speak(fullTextToRead, {
         onStart: () => setIsSpeaking(true),
         onEnd: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
+        onError: (err) => {
+          console.warn('Speech playback error:', err);
+          setIsSpeaking(false);
+        },
         rate: 1.0,
-        pitch: 1.02
+        pitch: 1.0
       });
     }
   };
@@ -779,6 +783,51 @@ export const BlogPostDetail: React.FC = () => {
           {/* ======================================================== */}
           <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
             
+            {/* AUDIO PLAYER QUICK WIDGET */}
+            <div className="border-2 border-north-black bg-north-black text-white p-5 shadow-[4px_4px_0px_0px_rgba(200,255,0,1)] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="bg-north-lime text-black font-heading font-extrabold text-[9px] uppercase px-2 py-0.5 border border-white">
+                  AI VOICE NARRATOR
+                </span>
+                <span className="text-[10px] font-mono text-gray-400">
+                  {post.readTime || '5 min'}
+                </span>
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-xs uppercase text-white">
+                  Listen to this Article
+                </h4>
+                <p className="text-[11px] text-gray-300 leading-tight">
+                  High-fidelity browser neural voice reading.
+                </p>
+              </div>
+              <button
+                onClick={handleVoiceToggle}
+                className={`btn-north text-xs uppercase w-full py-2.5 flex items-center justify-center gap-2 border border-white transition-all ${
+                  isSpeaking
+                    ? 'bg-north-lime text-black font-extrabold shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]'
+                    : 'bg-white text-black hover:bg-north-lime hover:text-black font-bold shadow-[2px_2px_0px_0px_rgba(200,255,0,1)]'
+                }`}
+              >
+                {isSpeaking ? (
+                  <>
+                    <VolumeX className="w-4 h-4" />
+                    <span>Pause Reading</span>
+                    <span className="flex items-center gap-0.5 ml-1">
+                      <span className="w-1 h-3 bg-black animate-pulse"></span>
+                      <span className="w-1 h-4 bg-black animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1 h-2 bg-black animate-pulse" style={{ animationDelay: '300ms' }}></span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4 text-black" />
+                    <span>Play Audio Article</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             {/* TABLE OF CONTENTS WIDGET */}
             {tableOfContents.length > 0 && (
               <div className="border-2 border-north-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-4">
