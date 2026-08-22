@@ -34,13 +34,8 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
 
   // Ensure image URL is fully qualified with domain so email clients can render it
   let imageUrl = post.image || '';
-  if (imageUrl) {
-    if (imageUrl.startsWith('data:')) {
-      // If base64, avoid email bloat so Gmail never clips the message
-      imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
-    } else if (!imageUrl.startsWith('http')) {
-      imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-    }
+  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+    imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   }
   
   return `<!DOCTYPE html>
@@ -188,7 +183,8 @@ export const broadcastNewBlogPost = async (
           });
           if (sendersRes.ok) {
             const sendersData = await sendersRes.json();
-            const activeSender = sendersData.senders?.find((s: any) => s.active) || sendersData.senders?.[0];
+            const domainSender = sendersData.senders?.find((s: any) => s.active && s.email.toLowerCase().includes('@smsaad.online'));
+            const activeSender = domainSender || sendersData.senders?.find((s: any) => s.active) || sendersData.senders?.[0];
             if (activeSender?.email) {
               senderEmail = activeSender.email;
               senderName = activeSender.name || 'SM SAAD';
