@@ -31,39 +31,58 @@ export const saveStoredResendKey = (key: string): void => {
 export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: string): string => {
   const articleUrl = `https://smsaad.online/blogs/${post.id}`;
   const siteUrl = 'https://smsaad.online';
+  const assetsUrl = 'https://smsaad.online/assets';
 
   // Ensure image URL is fully qualified with domain so email clients can render it
   let imageUrl = post.image || '';
-  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
-    imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+  if (imageUrl) {
+    if (imageUrl.startsWith('data:')) {
+      imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
+    } else if (!imageUrl.startsWith('http')) {
+      imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+  } else {
+    imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
   }
   
   return `<!DOCTYPE html>
-<html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${post.title} — New Article by SM SAAD</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${post.title} — SM SAAD</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td, a { font-family: Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: #f7f6f2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111111;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f7f6f2; padding: 25px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f4f3ef; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111111; -webkit-font-smoothing: antialiased;">
+  
+  <!-- Preheader preview text for inbox snippet -->
+  <div style="display: none; font-size: 1px; color: #f4f3ef; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+    ${post.title} — ${post.excerpt ? post.excerpt.slice(0, 120) : 'New creator insights and video editing breakdown from SM SAAD.'}
+  </div>
+
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f3ef; padding: 24px 12px;">
     <tr>
       <td align="center">
         <!-- Main Card Container -->
-        <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border: 2px solid #111111; box-shadow: 4px 4px 0px 0px #111111;">
+        <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border: 3px solid #111111; box-shadow: 6px 6px 0px 0px #111111;">
           
-          <!-- Header Banner -->
+          <!-- Top Black Header Bar -->
           <tr>
-            <td style="background-color: #111111; padding: 18px 24px; text-align: left;">
+            <td style="background-color: #111111; padding: 18px 24px;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td>
+                  <td align="left" style="vertical-align: middle;">
                     <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 1px; text-transform: uppercase;">
-                      SM SAAD <span style="color: #c8ff00;">•</span> CREATOR INSIGHTS
+                      SM SAAD <span style="color: #c8ff00;">•</span> INSIGHTS
                     </span>
                   </td>
-                  <td align="right">
-                    <span style="background-color: #c8ff00; color: #111111; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border: 1px solid #111111;">
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="background-color: #c8ff00; color: #111111; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 4px 8px; border: 1.5px solid #ffffff; letter-spacing: 0.5px; display: inline-block;">
                       NEW ARTICLE
                     </span>
                   </td>
@@ -72,46 +91,94 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
             </td>
           </tr>
 
-          <!-- Cover Image (if available) -->
+          <!-- Hero Cover Image -->
           ${
             imageUrl
               ? `<tr>
             <td style="padding: 0; background-color: #111111;">
-              <img src="${imageUrl}" alt="${post.title}" style="width: 100%; max-height: 320px; object-fit: cover; display: block; border-bottom: 2px solid #111111;" />
+              <a href="${articleUrl}" target="_blank" style="display: block; text-decoration: none;">
+                <img src="${imageUrl}" alt="${post.title}" style="width: 100%; max-height: 320px; object-fit: cover; display: block; border-bottom: 3px solid #111111;" />
+              </a>
             </td>
           </tr>`
               : ''
           }
 
-          <!-- Article Content Section -->
+          <!-- Article Content Body -->
           <tr>
-            <td style="padding: 35px 30px 25px 30px;">
-              <!-- Category & Read Time -->
-              <div style="margin-bottom: 15px;">
-                <span style="background-color: #c8ff00; color: #111111; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border: 1px solid #111111; display: inline-block;">
-                  ${post.category}
+            <td style="padding: 32px 28px 20px 28px;">
+              
+              <!-- Badges Row: Category & Read Time -->
+              <div style="margin-bottom: 16px;">
+                <span style="background-color: #c8ff00; color: #111111; font-size: 11px; font-weight: 900; text-transform: uppercase; padding: 5px 12px; border: 2px solid #111111; display: inline-block; letter-spacing: 0.5px; box-shadow: 2px 2px 0px 0px #111111;">
+                  ${post.category || 'CREATIVE INSIGHTS'}
                 </span>
-                <span style="color: #666666; font-size: 12px; margin-left: 10px; font-family: monospace;">
+                <span style="color: #666666; font-size: 12px; font-weight: 700; margin-left: 10px; font-family: monospace;">
                   ⏱️ ${post.readTime || '5 min read'} • ${post.date || 'Today'}
                 </span>
               </div>
 
-              <!-- Title -->
-              <h1 style="font-size: 24px; font-weight: 900; line-height: 1.3; color: #111111; text-transform: uppercase; margin: 0 0 16px 0;">
-                ${post.title}
+              <!-- Article Title -->
+              <h1 style="font-size: 24px; font-weight: 900; line-height: 1.3; color: #111111; text-transform: uppercase; margin: 0 0 16px 0; letter-spacing: -0.5px;">
+                <a href="${articleUrl}" target="_blank" style="color: #111111; text-decoration: none;">
+                  ${post.title}
+                </a>
               </h1>
 
-              <!-- Excerpt -->
-              <p style="font-size: 15px; line-height: 1.6; color: #444444; margin: 0 0 25px 0;">
-                ${post.excerpt}
-              </p>
-
-              <!-- CTA Button -->
-              <table border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px;">
+              <!-- Executive Summary Callout Box -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: #f7f6f2; border-left: 5px solid #c8ff00; border-top: 1px solid #e5e5e5; border-right: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5;">
                 <tr>
-                  <td align="center" style="background-color: #111111; border: 2px solid #111111; box-shadow: 4px 4px 0px 0px #c8ff00;">
-                    <a href="${articleUrl}" target="_blank" style="font-size: 13px; font-weight: 800; color: #c8ff00; text-decoration: none; padding: 14px 28px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <td style="padding: 16px 18px;">
+                    <div style="font-size: 10px; font-weight: 900; color: #888888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                      EXECUTIVE SUMMARY
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.6; color: #222222; font-style: italic; font-weight: 500;">
+                      "${post.excerpt || 'Discover the full breakdown, workflow insights, and creative techniques in this new article.'}"
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Key Takeaways Pill Cards -->
+              <div style="margin-bottom: 24px; background-color: #ffffff; border: 2px solid #111111; padding: 14px 18px; box-shadow: 3px 3px 0px 0px #111111;">
+                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #111111; margin-bottom: 8px;">
+                  📌 What You'll Learn in this Guide:
+                </div>
+                <div style="font-size: 13px; line-height: 1.6; color: #444444;">
+                  • In-depth technical breakdown & practical implementation<br>
+                  • DaVinci Resolve & Premiere Pro workflow optimizations<br>
+                  • Creator tools & modern VFX compositing tips
+                </div>
+              </div>
+
+              <!-- Primary CTA Button -->
+              <table border="0" cellspacing="0" cellpadding="0" style="margin: 10px 0 16px 0; width: 100%;">
+                <tr>
+                  <td align="center" style="background-color: #111111; border: 3px solid #111111; box-shadow: 4px 4px 0px 0px #c8ff00;">
+                    <a href="${articleUrl}" target="_blank" style="font-size: 14px; font-weight: 900; color: #c8ff00; text-decoration: none; padding: 16px 28px; display: block; text-transform: uppercase; letter-spacing: 0.8px; text-align: center;">
                       Read Full Article on Website →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Free Asset Store Promo Banner -->
+          <tr>
+            <td style="padding: 0 28px 24px 28px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #111111; color: #ffffff; border: 2px solid #111111; padding: 16px 20px;">
+                <tr>
+                  <td>
+                    <div style="font-size: 11px; font-weight: 900; color: #c8ff00; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                      🎁 FREE CREATOR ASSETS
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.4; color: #e0e0e0; margin-bottom: 8px;">
+                      Download free sound effects, VFX overlays, DaVinci Resolve presets, and project templates.
+                    </div>
+                    <a href="${assetsUrl}" target="_blank" style="font-size: 11px; font-weight: 800; color: #c8ff00; text-decoration: underline; text-transform: uppercase;">
+                      Browse Free Asset Store →
                     </a>
                   </td>
                 </tr>
@@ -119,20 +186,38 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
             </td>
           </tr>
 
-          <!-- Footer Info -->
+          <!-- Creator Profile & Footer Info -->
           <tr>
-            <td style="background-color: #f7f6f2; padding: 20px 30px; border-top: 2px solid #111111; text-align: left; font-size: 12px; color: #666666; line-height: 1.5;">
-              <p style="margin: 0 0 6px 0; font-weight: 700; color: #111111;">
-                SM SAAD — Video Editor, VFX Compositing Artist & Web Developer
-              </p>
-              <p style="margin: 0 0 10px 0;">
-                You are receiving this automated email because you subscribed to the creator newsletter on <a href="${siteUrl}" style="color: #111111; font-weight: 700; text-decoration: underline;">smsaad.online</a>.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #888888;">
-                <a href="${siteUrl}/blogs" style="color: #111111; text-decoration: none; margin-right: 12px;">All Articles</a>
-                <a href="${siteUrl}/assets" style="color: #111111; text-decoration: none; margin-right: 12px;">Free Assets</a>
-                <a href="${siteUrl}/contact" style="color: #111111; text-decoration: none;">Get in Touch</a>
-              </p>
+            <td style="background-color: #f7f6f2; padding: 24px 28px; border-top: 3px solid #111111; text-align: left; font-size: 12px; color: #555555; line-height: 1.6;">
+              
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td width="48" style="vertical-align: top; padding-right: 14px;">
+                    <img src="https://smsaad.online/assets/images/hero.jpg" alt="SM SAAD" width="44" height="44" style="border-radius: 50%; border: 2px solid #111111; display: block; object-fit: cover;" />
+                  </td>
+                  <td style="vertical-align: top;">
+                    <div style="font-size: 13px; font-weight: 900; color: #111111; text-transform: uppercase;">
+                      SM SAAD
+                    </div>
+                    <div style="font-size: 11px; color: #666666; font-weight: 600;">
+                      Video Editor, VFX Compositing Artist & Web Developer
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="border-top: 1px solid #e0dfd8; padding-top: 14px; font-size: 11px; color: #777777;">
+                <p style="margin: 0 0 10px 0;">
+                  You received this email because you subscribed to creator insights on <a href="${siteUrl}" style="color: #111111; font-weight: 700; text-decoration: underline;">smsaad.online</a>.
+                </p>
+                <div style="margin: 0;">
+                  <a href="${siteUrl}/blogs" style="color: #111111; font-weight: 800; text-decoration: none; margin-right: 14px;">All Articles</a>
+                  <a href="${assetsUrl}" style="color: #111111; font-weight: 800; text-decoration: none; margin-right: 14px;">Free Assets</a>
+                  <a href="${siteUrl}/contact" style="color: #111111; font-weight: 800; text-decoration: none; margin-right: 14px;">Work With Me</a>
+                  <a href="${siteUrl}" style="color: #111111; font-weight: 800; text-decoration: none;">Portfolio</a>
+                </div>
+              </div>
+
             </td>
           </tr>
 
