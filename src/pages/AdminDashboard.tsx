@@ -873,21 +873,21 @@ Write your article introduction here explaining key concepts, goals, and visual 
 
                 {/* API Key & Broadcast Controls Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
-                  {/* Left: Resend Key Configuration */}
+                  {/* Left: Brevo / Resend Key Configuration */}
                   <div className="lg:col-span-6 bg-north-bg p-4 border border-north-black space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-heading font-bold text-xs uppercase text-north-black flex items-center gap-1.5">
                         <Key className="w-4 h-4 text-north-lime-dark" />
-                        <span>Resend Email API Key</span>
+                        <span>Brevo / Resend Email API Key</span>
                       </span>
                       <span className="text-[10px] font-mono text-north-gray">
-                        {resendApiKey ? '● Connected' : '○ Free Tier Available'}
+                        {resendApiKey ? '● Connected' : '○ Brevo / Resend Free'}
                       </span>
                     </div>
                     <form onSubmit={handleSaveResendKeySubmit} className="flex gap-2">
                       <input
                         type="password"
-                        placeholder="Paste Resend API Key (re_...)"
+                        placeholder="Paste Brevo API Key (xkeysib-...) or Resend Key (re_...)"
                         value={resendApiKey}
                         onChange={(e) => setResendApiKey(e.target.value)}
                         className="flex-1 p-2.5 bg-white border border-north-black text-xs font-mono focus:outline-none focus:ring-1 focus:ring-north-lime"
@@ -900,7 +900,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
                       </button>
                     </form>
                     <p className="text-[11px] text-north-gray leading-tight">
-                      When provided, newly published articles are sent directly to all {subscribers.length} subscriber(s). If empty, 1-click email client dispatch is ready.
+                      Works with your existing Brevo account (<code className="font-mono text-[10px]">hello@smsaad.online</code>) or Resend. Automated delivery triggers whenever you publish.
                     </p>
                   </div>
 

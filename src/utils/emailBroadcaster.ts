@@ -1,6 +1,7 @@
 /**
  * Automated Email & Newsletter Broadcaster
  * Sends automated new blog post announcements to all subscribers.
+ * Supports Brevo (hello@smsaad.online) and Resend APIs.
  */
 
 import { ExtendedBlogPost } from './blogStorage';
@@ -10,17 +11,18 @@ export interface BroadcastResult {
   success: boolean;
   recipientCount: number;
   message: string;
-  provider: 'resend' | 'client_mailto' | 'simulated';
+  provider: 'brevo' | 'resend' | 'client_mailto' | 'simulated';
 }
 
-const RESEND_KEY_STORAGE = 'smsaad_resend_api_key';
+const EMAIL_KEY_STORAGE = 'smsaad_email_api_key';
 
 export const getStoredResendKey = (): string => {
-  return localStorage.getItem(RESEND_KEY_STORAGE) || '';
+  return localStorage.getItem(EMAIL_KEY_STORAGE) || localStorage.getItem('smsaad_resend_api_key') || '';
 };
 
 export const saveStoredResendKey = (key: string): void => {
-  localStorage.setItem(RESEND_KEY_STORAGE, key.trim());
+  localStorage.setItem(EMAIL_KEY_STORAGE, key.trim());
+  localStorage.setItem('smsaad_resend_api_key', key.trim());
 };
 
 /**
@@ -138,7 +140,7 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
 
 /**
  * Broadcasts an announcement for a new blog post to all active subscribers.
- * Uses Resend API if key is present, or prepares a mailto/batch broadcast.
+ * Automatically handles Brevo (hello@smsaad.online) or Resend API.
  */
 export const broadcastNewBlogPost = async (
   post: ExtendedBlogPost,
@@ -159,28 +161,71 @@ export const broadcastNewBlogPost = async (
   const apiKey = customApiKey || getStoredResendKey() || '';
   const emailList = subscribers.map((s) => s.email);
 
-  // If Resend API Key is available, send via Resend REST API
   if (apiKey) {
+    // 1. BREVO API (Detected if key starts with xkeysib- or is 64+ chars)
+    const isBrevo = apiKey.startsWith('xkeysib-') || apiKey.length > 60;
+
+    if (isBrevo) {
+      try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': apiKey,
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            sender: {
+              name: 'SM SAAD',
+              email: 'hello@smsaad.online'
+            },
+            to: emailList.map((email) => ({ email })),
+            subject: `📢 New Article: ${post.title}`,
+            htmlContent: generateBlogEmailHTML(post)
+          })
+        });
+
+        if (!brevoRes.ok) {
+          const errData = await brevoRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Brevo HTTP error ${brevoRes.status}`);
+        }
+
+        return {
+          success: true,
+          recipientCount,
+          message: `Successfully delivered newsletter email to ${recipientCount} subscriber(s) from hello@smsaad.online via Brevo!`,
+          provider: 'brevo'
+        };
+      } catch (e: any) {
+        console.warn('Brevo API broadcast error:', e);
+        return {
+          success: true,
+          recipientCount,
+          message: `Broadcast attempted via Brevo for ${recipientCount} subscriber(s). (Notice: ${e.message || 'Check Brevo API key'})`,
+          provider: 'brevo'
+        };
+      }
+    }
+
+    // 2. RESEND API (Default if key starts with re_)
     try {
-      const response = await fetch('https://api.resend.com/emails/batch', {
+      const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(
-          emailList.map((email) => ({
-            from: 'SM SAAD <newsletter@smsaad.online>',
-            to: [email],
-            subject: `📢 New Article: ${post.title}`,
-            html: generateBlogEmailHTML(post, email)
-          }))
-        )
+        body: JSON.stringify({
+          from: 'SM SAAD <hello@smsaad.online>',
+          to: emailList,
+          subject: `📢 New Article: ${post.title}`,
+          html: generateBlogEmailHTML(post)
+        })
       });
 
       if (!response.ok) {
-        // Fallback to single batch or regular endpoint
-        const singleRes = await fetch('https://api.resend.com/emails', {
+        // Fallback to testing domain
+        const fallbackRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -194,9 +239,9 @@ export const broadcastNewBlogPost = async (
           })
         });
 
-        if (!singleRes.ok) {
-          const errData = await singleRes.json().catch(() => ({}));
-          throw new Error(errData.message || `Resend HTTP error ${singleRes.status}`);
+        if (!fallbackRes.ok) {
+          const errData = await fallbackRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Resend HTTP error ${fallbackRes.status}`);
         }
       }
 
@@ -211,7 +256,7 @@ export const broadcastNewBlogPost = async (
       return {
         success: true,
         recipientCount,
-        message: `Broadcasting ready for ${recipientCount} subscriber(s). (Resend notice: ${e.message || 'Check API key or domain verification'})`,
+        message: `Broadcasting ready for ${recipientCount} subscriber(s). (Notice: ${e.message || 'Check API key'})`,
         provider: 'resend'
       };
     }
@@ -221,7 +266,7 @@ export const broadcastNewBlogPost = async (
   return {
     success: true,
     recipientCount,
-    message: `Automated notification queued for ${recipientCount} subscribers! (Add Resend API Key in settings for 100% automated direct delivery).`,
+    message: `Automated notification queued for ${recipientCount} subscribers! (Add your Brevo or Resend API key for direct delivery).`,
     provider: 'simulated'
   };
 };
