@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Eye, EyeOff, Search, RefreshCw, FileText, CheckCircle, Clock,
   ArrowLeft, ArrowUpRight, LayoutGrid, List, Sparkles, Image as ImageIcon, Package, Download, FolderPlus, Tag,
   Bold, Italic, Heading1, Heading2, Heading3, ListOrdered, Quote, Code, Check, X, BookOpen, Send, ShieldCheck,
-  Split, HelpCircle, AlertCircle, CheckSquare, Layers, Sparkle, PlusCircle, Maximize2
+  Split, HelpCircle, AlertCircle, CheckSquare, Layers, Sparkle, PlusCircle, Maximize2, Upload
 } from 'lucide-react';
 import {
   getStoredBlogPosts,
@@ -837,17 +837,69 @@ Write your article introduction here explaining key concepts, goals, and visual 
                     ></textarea>
                   </div>
 
-                  {/* Preset Image Picker */}
+                  {/* Cover Image Picker & File Uploader */}
                   <div className="space-y-2 pt-2 border-t border-north-dark-sand">
-                    <label className="font-heading font-bold text-xs uppercase text-north-black block">Cover Image URL *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="font-heading font-bold text-xs uppercase text-north-black block">Cover Image URL *</label>
+                      <span className="text-[10px] text-north-gray font-mono">Upload from PC or pick below</span>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-3 items-center">
                       <input
                         type="text"
                         required
+                        placeholder="Paste image link, or upload file below..."
                         value={currentPost.image || ''}
                         onChange={(e) => setCurrentPost({ ...currentPost, image: e.target.value })}
                         className="flex-1 p-2 bg-white border border-north-black text-xs font-mono"
                       />
+                      
+                      {/* Upload from PC Button */}
+                      <label className="cursor-pointer px-3 py-2 bg-north-black text-white text-xs font-heading font-bold uppercase flex items-center space-x-1.5 hover:bg-north-lime hover:text-north-black border border-north-black transition-colors shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (uploadEv) => {
+                                const result = uploadEv.target?.result as string;
+                                if (result) {
+                                  setCurrentPost({ ...currentPost, image: result });
+                                  showNotify('Image uploaded successfully!');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {/* Random Stock Photo Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const stockImages = [
+                            'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=1200&q=80',
+                            'https://images.unsplash.com/photo-1536240478700-b869070f9279?w=1200&q=80',
+                            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80',
+                            'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&q=80',
+                            'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1200&q=80',
+                            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80'
+                          ];
+                          const randomImg = stockImages[Math.floor(Math.random() * stockImages.length)];
+                          setCurrentPost({ ...currentPost, image: randomImg });
+                          showNotify('Stock cover image selected!');
+                        }}
+                        className="px-3 py-2 bg-white text-north-black text-xs font-heading font-bold uppercase border border-north-black hover:bg-north-bg transition-colors shrink-0"
+                      >
+                        Free Stock
+                      </button>
+
                       {currentPost.image && (
                         <div className="w-14 h-10 border border-north-black overflow-hidden bg-white shrink-0">
                           <img src={currentPost.image} alt="Cover Preview" className="w-full h-full object-cover" />
@@ -855,15 +907,15 @@ Write your article introduction here explaining key concepts, goals, and visual 
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <span className="text-[10px] font-heading font-bold uppercase text-north-gray self-center mr-1">Presets:</span>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className="text-[10px] font-heading font-bold uppercase text-north-gray mr-1">Presets:</span>
                       {presetImages.map((imgUrl, i) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => setCurrentPost({ ...currentPost, image: imgUrl })}
-                          className={`w-10 h-7 border overflow-hidden ${
-                            currentPost.image === imgUrl ? 'border-2 border-north-black ring-2 ring-north-lime' : 'border-gray-400 opacity-60 hover:opacity-100'
+                          className={`w-10 h-7 border overflow-hidden transition-transform ${
+                            currentPost.image === imgUrl ? 'border-2 border-north-black ring-2 ring-north-lime scale-105' : 'border-gray-400 opacity-60 hover:opacity-100'
                           }`}
                         >
                           <img src={imgUrl} alt={`Preset ${i}`} className="w-full h-full object-cover" />
@@ -1165,10 +1217,35 @@ Write your article introduction here explaining key concepts, goals, and visual 
                     />
                   </div>
                   <div>
-                    <label className="font-heading font-bold text-xs uppercase block mb-1">Cover Image *</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-heading font-bold text-xs uppercase block">Cover Image *</label>
+                      <label className="cursor-pointer text-[10px] font-heading font-bold uppercase bg-north-black text-north-lime px-2 py-0.5 border border-north-black hover:bg-north-lime hover:text-north-black">
+                        Upload PC Image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (uploadEv) => {
+                                const result = uploadEv.target?.result as string;
+                                if (result) {
+                                  setCurrentAsset({ ...currentAsset, image: result });
+                                  showNotify('Asset image uploaded!');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                     <input
                       type="text"
                       required
+                      placeholder="Paste image URL or click Upload PC Image above"
                       value={currentAsset.image || ''}
                       onChange={(e) => setCurrentAsset({ ...currentAsset, image: e.target.value })}
                       className="w-full p-3 bg-north-bg border border-north-black text-xs"
