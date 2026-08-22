@@ -35,14 +35,8 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
 
   // Ensure image URL is fully qualified with domain so email clients can render it
   let imageUrl = post.image || '';
-  if (imageUrl) {
-    if (imageUrl.startsWith('data:')) {
-      imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
-    } else if (!imageUrl.startsWith('http')) {
-      imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-    }
-  } else {
-    imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
+  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+    imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   }
   
   return `<!DOCTYPE html>
