@@ -167,6 +167,26 @@ export const broadcastNewBlogPost = async (
 
     if (isBrevo) {
       try {
+        // Step 1: Detect verified sender from Brevo account
+        let senderName = 'SM SAAD';
+        let senderEmail = 'saadshaik191@gmail.com';
+
+        try {
+          const sendersRes = await fetch('https://api.brevo.com/v3/senders', {
+            headers: { 'api-key': apiKey, Accept: 'application/json' }
+          });
+          if (sendersRes.ok) {
+            const sendersData = await sendersRes.json();
+            const activeSender = sendersData.senders?.find((s: any) => s.active) || sendersData.senders?.[0];
+            if (activeSender?.email) {
+              senderEmail = activeSender.email;
+              senderName = activeSender.name || 'SM SAAD';
+            }
+          }
+        } catch (sErr) {
+          console.warn('Could not auto-fetch Brevo sender, using default:', sErr);
+        }
+
         const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
@@ -176,6 +196,10 @@ export const broadcastNewBlogPost = async (
           },
           body: JSON.stringify({
             sender: {
+              name: senderName,
+              email: senderEmail
+            },
+            replyTo: {
               name: 'SM SAAD',
               email: 'hello@smsaad.online'
             },
@@ -193,7 +217,7 @@ export const broadcastNewBlogPost = async (
         return {
           success: true,
           recipientCount,
-          message: `Successfully delivered newsletter email to ${recipientCount} subscriber(s) from hello@smsaad.online via Brevo!`,
+          message: `Successfully delivered newsletter email to ${recipientCount} subscriber(s) via Brevo!`,
           provider: 'brevo'
         };
       } catch (e: any) {
@@ -201,7 +225,7 @@ export const broadcastNewBlogPost = async (
         return {
           success: true,
           recipientCount,
-          message: `Broadcast attempted via Brevo for ${recipientCount} subscriber(s). (Notice: ${e.message || 'Check Brevo API key'})`,
+          message: `Broadcast error via Brevo: ${e.message || 'Check Brevo configuration'}`,
           provider: 'brevo'
         };
       }
