@@ -36,6 +36,12 @@ As a **Video Editor, VFX Compositing Artist & Web Developer**, creating high-imp
 
 export const seedSupabaseIfEmpty = async (): Promise<void> => {
   try {
+    // Only attempt seed once per browser session to prevent recreating deleted items
+    const alreadySeeded = localStorage.getItem('smsaad_db_seeded_done');
+    if (alreadySeeded === 'true') {
+      return;
+    }
+
     // ── SEED BLOG POSTS ──────────────────────────────────────
     const { data: existingPosts, error: postsErr } = await supabase
       .from('posts')
@@ -107,6 +113,8 @@ export const seedSupabaseIfEmpty = async (): Promise<void> => {
     } else {
       console.log('[Seed] Assets table already has data — skipping seed.');
     }
+
+    localStorage.setItem('smsaad_db_seeded_done', 'true');
   } catch (e) {
     console.warn('[Seed] Supabase not reachable during seed:', e);
   }

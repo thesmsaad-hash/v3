@@ -42,7 +42,7 @@ As a **Video Editor, VFX Compositing Artist & Web Developer**, creating high-imp
 export const getStoredBlogPosts = (): ExtendedBlogPost[] => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    if (data) return JSON.parse(data);
+    if (data !== null) return JSON.parse(data);
   } catch (e) {
     console.error('Failed to load blog posts from localStorage', e);
   }
@@ -67,7 +67,7 @@ export const getStoredBlogPosts = (): ExtendedBlogPost[] => {
  */
 export const syncBlogPostsFromSupabase = async (): Promise<ExtendedBlogPost[] | null> => {
   const remote = await fetchBlogPostsFromDB();
-  if (remote && remote.length > 0) {
+  if (remote !== null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
     return remote;
   }

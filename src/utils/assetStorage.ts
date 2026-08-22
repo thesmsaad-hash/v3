@@ -118,7 +118,7 @@ export const defaultDigitalAssets: DigitalAsset[] = [
 export const getStoredDigitalAssets = (): DigitalAsset[] => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    if (data) return JSON.parse(data);
+    if (data !== null) return JSON.parse(data);
   } catch (e) {
     console.error('Failed to load digital assets from localStorage', e);
   }
@@ -137,7 +137,7 @@ export const getStoredDigitalAssets = (): DigitalAsset[] => {
  */
 export const syncAssetsFromSupabase = async (): Promise<DigitalAsset[] | null> => {
   const remote = await fetchAssetsFromDB();
-  if (remote && remote.length > 0) {
+  if (remote !== null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
     return remote;
   }
