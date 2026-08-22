@@ -90,7 +90,7 @@ export const siteConfig = {
   heroHeading: "I Create. I Edit. I Build.",
   heroSubhead: "I combine visual storytelling, post-production and modern web technologies to create engaging content, digital experiences and creative projects.",
   website: "smsaad.online",
-  email: "contact@smsaad.online",
+  email: "hello@smsaad.online",
   introText: "I'm SM SAAD — a Video Editor, VFX Compositing Artist & Web Developer. I create visual content, build digital experiences and explore modern creative technologies. My work combines video editing, VFX compositing, motion graphics and web development with AI-assisted workflows.",
   aboutText: "A Creative Professional Who Creates & Builds. I'm a multidisciplinary creative professional focused on video editing, VFX compositing, motion graphics and web development. My creative work is centered around visual storytelling — transforming raw footage, concepts and ideas into polished content. Alongside post-production, I build websites and experiment with digital products, AI tools and automation workflows.",
   socials: {
