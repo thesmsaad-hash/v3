@@ -28,16 +28,48 @@ export const saveStoredResendKey = (key: string): void => {
 /**
  * Generates branded HTML newsletter email template for a blog post
  */
+/**
+ * Resolves a reliable public HTTPS image URL for email clients (Gmail blocks data: base64 URLs)
+ */
+export const getPublicImageUrlForEmail = (post: ExtendedBlogPost): string => {
+  const img = post.image || '';
+  if (img.startsWith('http://') || img.startsWith('https://')) {
+    return img;
+  }
+  if (img.startsWith('/assets/')) {
+    return `https://smsaad.online${img}`;
+  }
+  if (img.startsWith('assets/')) {
+    return `https://smsaad.online/${img}`;
+  }
+  
+  // Gmail blocks data: base64 image URIs, so map intelligently to public assets on smsaad.online
+  const text = `${post.title} ${post.category} ${post.id}`.toLowerCase();
+  if (text.includes('kalakar') || text.includes('caption') || text.includes('ai') || post.id === '1') {
+    return 'https://smsaad.online/assets/images/works4.jpg';
+  }
+  if (text.includes('sound') || text.includes('audio') || post.id === '3') {
+    return 'https://smsaad.online/assets/images/works3.jpg';
+  }
+  if (text.includes('vfx') || text.includes('compositing') || post.id === '5') {
+    return 'https://smsaad.online/assets/images/why.jpg';
+  }
+  if (text.includes('workflow') || post.id === '4') {
+    return 'https://smsaad.online/assets/images/works4.jpg';
+  }
+  if (text.includes('editing') || post.id === '2') {
+    return 'https://smsaad.online/assets/images/works2.jpg';
+  }
+  return 'https://smsaad.online/assets/images/works4.jpg';
+};
+
 export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: string): string => {
   const articleUrl = `https://smsaad.online/blogs/${post.id}`;
   const siteUrl = 'https://smsaad.online';
   const assetsUrl = 'https://smsaad.online/assets';
 
-  // Ensure image URL is fully qualified with domain so email clients can render it
-  let imageUrl = post.image || '';
-  if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
-    imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-  }
+  // Ensure image URL is a valid public HTTPS URL
+  const imageUrl = getPublicImageUrlForEmail(post);
   
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
