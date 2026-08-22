@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { getStoredBlogPosts, syncBlogPostsFromSupabase, ExtendedBlogPost } from '../utils/blogStorage';
+import { addNewsletterSubscriber } from '../utils/subscriberStorage';
 
 export const Blogs: React.FC = () => {
   const [posts, setPosts] = useState<ExtendedBlogPost[]>([]);
@@ -102,9 +103,10 @@ export const Blogs: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (emailInput.trim()) {
+      await addNewsletterSubscriber(emailInput, 'Blog Page Newsletter');
       setNewsletterSubmitted(true);
       setEmailInput('');
       setTimeout(() => setNewsletterSubmitted(false), 5000);

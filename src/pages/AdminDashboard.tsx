@@ -5,7 +5,8 @@ import {
   Plus, Edit, Trash2, Eye, EyeOff, Search, RefreshCw, FileText, CheckCircle, Clock,
   ArrowLeft, ArrowUpRight, LayoutGrid, List, Sparkles, Image as ImageIcon, Package, Download, FolderPlus, Tag,
   Bold, Italic, Heading1, Heading2, Heading3, ListOrdered, Quote, Code, Check, X, BookOpen, Send, ShieldCheck,
-  Split, HelpCircle, AlertCircle, CheckSquare, Layers, Sparkle, PlusCircle, Maximize2, Upload
+  Split, HelpCircle, AlertCircle, CheckSquare, Layers, Sparkle, PlusCircle, Maximize2, Upload,
+  Mail, Users, UserPlus, UserCheck, Copy
 } from 'lucide-react';
 import {
   getStoredBlogPosts,
@@ -23,11 +24,18 @@ import {
   syncAssetsFromSupabase,
   DigitalAsset
 } from '../utils/assetStorage';
+import {
+  getStoredSubscribers,
+  saveStoredSubscriber,
+  deleteStoredSubscriber,
+  syncSubscribersFromSupabase,
+  BlogSubscriber
+} from '../utils/subscriberStorage';
 import { SEO } from '../components/SEO';
 import { AdminAuthGuard } from '../components/AdminAuthGuard';
 
 export const AdminDashboard: React.FC = () => {
-  const [activeMainTab, setActiveMainTab] = useState<'blogs' | 'assets'>('blogs');
+  const [activeMainTab, setActiveMainTab] = useState<'blogs' | 'assets' | 'subscribers'>('blogs');
 
   // BLOG STATES
   const [posts, setPosts] = useState<ExtendedBlogPost[]>([]);
@@ -47,6 +55,15 @@ export const AdminDashboard: React.FC = () => {
   const [currentAsset, setCurrentAsset] = useState<Partial<DigitalAsset>>({});
   const [deleteAssetConfirmId, setDeleteAssetConfirmId] = useState<string | null>(null);
 
+  // SUBSCRIBERS STATES
+  const [subscribers, setSubscribers] = useState<BlogSubscriber[]>([]);
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [isAddSubscriberOpen, setIsAddSubscriberOpen] = useState(false);
+  const [newSubEmail, setNewSubEmail] = useState('');
+  const [newSubSource, setNewSubSource] = useState('Manual Admin');
+  const [deleteSubConfirmId, setDeleteSubConfirmId] = useState<string | null>(null);
+  const [copiedSubId, setCopiedSubId] = useState<string | null>(null);
+
   // Toast Notification State
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -54,6 +71,7 @@ export const AdminDashboard: React.FC = () => {
     // Load instantly from localStorage
     setPosts(getStoredBlogPosts());
     setAssets(getStoredDigitalAssets());
+    setSubscribers(getStoredSubscribers());
 
     // Then sync from Supabase and refresh if newer data exists
     syncBlogPostsFromSupabase().then((remote) => {
@@ -61,6 +79,9 @@ export const AdminDashboard: React.FC = () => {
     });
     syncAssetsFromSupabase().then((remote) => {
       if (remote) setAssets(remote);
+    });
+    syncSubscribersFromSupabase().then((remote) => {
+      if (remote) setSubscribers(remote);
     });
   }, []);
 
@@ -307,6 +328,73 @@ Write your article introduction here explaining key concepts, goals, and visual 
     });
   }, [assets, assetSearch, assetCategoryFilter]);
 
+  const filteredSubscribers = useMemo(() => {
+    return subscribers.filter((s) => {
+      const q = subscriberSearch.toLowerCase();
+      return s.email.toLowerCase().includes(q) || s.source.toLowerCase().includes(q);
+    });
+  }, [subscribers, subscriberSearch]);
+
+  const handleAddSubscriber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubEmail.trim()) return;
+    const newSub: BlogSubscriber = {
+      id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      email: newSubEmail.trim().toLowerCase(),
+      source: newSubSource.trim() || 'Manual Admin',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+    const updated = await saveStoredSubscriber(newSub);
+    setSubscribers(updated);
+    setNewSubEmail('');
+    setIsAddSubscriberOpen(false);
+    showNotify(`Subscriber ${newSub.email} added!`);
+  };
+
+  const handleDeleteSubscriber = async (id: string) => {
+    const updated = await deleteStoredSubscriber(id);
+    setSubscribers(updated);
+    setDeleteSubConfirmId(null);
+    showNotify('Subscriber removed from list.');
+  };
+
+  const handleCopySubscriberEmail = (email: string, id: string) => {
+    navigator.clipboard.writeText(email);
+    setCopiedSubId(id);
+    setTimeout(() => setCopiedSubId(null), 2000);
+    showNotify('Email copied to clipboard!');
+  };
+
+  const handleCopyAllEmails = () => {
+    if (subscribers.length === 0) {
+      showNotify('No subscribers to copy.');
+      return;
+    }
+    const all = subscribers.map((s) => s.email).join(', ');
+    navigator.clipboard.writeText(all);
+    showNotify(`Copied ${subscribers.length} subscriber emails!`);
+  };
+
+  const handleExportCSV = () => {
+    if (subscribers.length === 0) {
+      showNotify('No subscribers to export.');
+      return;
+    }
+    const headers = 'ID,Email,Source,Status,Created At\n';
+    const rows = subscribers
+      .map((s) => `"${s.id}","${s.email}","${s.source}","${s.status}","${s.createdAt}"`)
+      .join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blog_subscribers_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotify('Subscribers list exported as CSV!');
+  };
+
   // Dashboard Stats
   const publishedBlogCount = posts.filter((p) => p.status === 'published').length;
   const draftBlogCount = posts.filter((p) => p.status === 'draft').length;
@@ -367,7 +455,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
             </div>
 
             {/* DASHBOARD STATS METRICS BAR */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white border border-north-black p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center justify-between text-xs font-heading font-bold uppercase text-north-gray">
                   <span>Published Articles</span>
@@ -399,13 +487,21 @@ Write your article introduction here explaining key concepts, goals, and visual 
                 </div>
                 <p className="font-heading font-black text-2xl text-north-black mt-2">{totalDownloads.toLocaleString()}</p>
               </div>
+
+              <div className="bg-white border border-north-black p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] col-span-2 sm:col-span-1">
+                <div className="flex items-center justify-between text-xs font-heading font-bold uppercase text-north-gray">
+                  <span>Blog Subscribers</span>
+                  <Users className="w-4 h-4 text-north-lime-dark" />
+                </div>
+                <p className="font-heading font-black text-2xl text-north-black mt-2">{subscribers.length}</p>
+              </div>
             </div>
 
             {/* TAB SELECTOR */}
-            <div className="flex items-center space-x-3 pt-2">
+            <div className="flex items-center space-x-3 pt-2 overflow-x-auto pb-1 no-scrollbar">
               <button
                 onClick={() => setActiveMainTab('blogs')}
-                className={`font-heading font-extrabold text-xs uppercase px-5 py-2.5 border border-north-black transition-all flex items-center space-x-2 ${
+                className={`font-heading font-extrabold text-xs uppercase px-5 py-2.5 border border-north-black transition-all flex items-center space-x-2 shrink-0 ${
                   activeMainTab === 'blogs'
                     ? 'bg-north-black text-north-lime shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                     : 'bg-white text-north-black hover:bg-north-bg'
@@ -417,7 +513,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
 
               <button
                 onClick={() => setActiveMainTab('assets')}
-                className={`font-heading font-extrabold text-xs uppercase px-5 py-2.5 border border-north-black transition-all flex items-center space-x-2 ${
+                className={`font-heading font-extrabold text-xs uppercase px-5 py-2.5 border border-north-black transition-all flex items-center space-x-2 shrink-0 ${
                   activeMainTab === 'assets'
                     ? 'bg-north-black text-north-lime shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                     : 'bg-white text-north-black hover:bg-north-bg'
@@ -425,6 +521,18 @@ Write your article introduction here explaining key concepts, goals, and visual 
               >
                 <Package className="w-4 h-4" />
                 <span>Digital Asset Store ({assets.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMainTab('subscribers')}
+                className={`font-heading font-extrabold text-xs uppercase px-5 py-2.5 border border-north-black transition-all flex items-center space-x-2 shrink-0 ${
+                  activeMainTab === 'subscribers'
+                    ? 'bg-north-black text-north-lime shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                    : 'bg-white text-north-black hover:bg-north-bg'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                <span>Blog Subscribers ({subscribers.length})</span>
               </button>
             </div>
           </div>
@@ -681,6 +789,161 @@ Write your article introduction here explaining key concepts, goals, and visual 
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 3: BLOG SUBSCRIBERS HUB */}
+        {activeMainTab === 'subscribers' && (
+          <div className="space-y-6">
+            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8">
+              {/* TOP ACTION & SEARCH BAR */}
+              <div className="border border-north-black bg-white p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-north-gray" />
+                  <input
+                    type="text"
+                    placeholder="Search subscribers by email or signup source..."
+                    value={subscriberSearch}
+                    onChange={(e) => setSubscriberSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-north-bg border border-north-black text-north-black text-xs font-body focus:outline-none focus:ring-2 focus:ring-north-lime"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleCopyAllEmails}
+                    disabled={subscribers.length === 0}
+                    className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center"
+                    title="Copy all subscriber emails formatted for email campaigns"
+                  >
+                    <Copy className="w-4 h-4 mr-1.5" />
+                    <span>Copy All Emails</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={subscribers.length === 0}
+                    className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center"
+                    title="Export subscribers list as a CSV file"
+                  >
+                    <Download className="w-4 h-4 mr-1.5" />
+                    <span>Export CSV</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsAddSubscriberOpen(true)}
+                    className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <UserPlus className="w-4 h-4 mr-1.5" />
+                    <span>Add Subscriber</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* SUBSCRIBERS TABLE */}
+              <div className="mt-6 border border-north-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-north-black text-white text-xs font-heading font-bold uppercase tracking-wider">
+                      <th className="p-4 w-12">#</th>
+                      <th className="p-4">Subscriber Email</th>
+                      <th className="p-4">Signup Source</th>
+                      <th className="p-4">Subscribed Date</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-north-dark-sand text-xs font-body">
+                    {filteredSubscribers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-north-gray font-heading font-bold uppercase text-xs">
+                          <Users className="w-8 h-8 mx-auto mb-2 text-north-gray/50" />
+                          <span>No subscribers found matching your search.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSubscribers.map((sub, idx) => (
+                        <tr key={sub.id} className="hover:bg-north-bg/60 transition-colors">
+                          <td className="p-4 font-mono text-north-gray">
+                            {idx + 1}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-full bg-north-black text-north-lime font-heading font-bold text-xs flex items-center justify-center border border-north-black shrink-0">
+                                {sub.email.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-heading font-bold text-sm text-north-black select-all">
+                                {sub.email}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="bg-white border border-north-black px-2.5 py-1 font-heading font-bold text-[10px] uppercase text-north-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                              {sub.source}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono text-north-gray">
+                            {new Date(sub.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-4">
+                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 font-heading font-bold text-[10px] uppercase rounded-full">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                              Active
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => handleCopySubscriberEmail(sub.email, sub.id)}
+                                className="p-2 border border-north-black bg-white hover:bg-north-lime transition-colors"
+                                title="Copy Email"
+                              >
+                                {copiedSubId === sub.id ? (
+                                  <Check className="w-3.5 h-3.5 text-green-600" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              {deleteSubConfirmId === sub.id ? (
+                                <div className="flex items-center space-x-1 border border-red-600 p-1 bg-red-50">
+                                  <button
+                                    onClick={() => handleDeleteSubscriber(sub.id)}
+                                    className="bg-red-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteSubConfirmId(null)}
+                                    className="bg-gray-200 text-black px-2 py-0.5 text-[10px] font-bold uppercase"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setDeleteSubConfirmId(sub.id)}
+                                  className="p-2 border border-north-black bg-red-50 text-red-700 hover:bg-red-600 hover:text-white transition-colors"
+                                  title="Delete Subscriber"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1270,6 +1533,63 @@ Write your article introduction here explaining key concepts, goals, and visual 
                   </button>
                   <button type="submit" className="btn-north bg-north-black text-north-lime">
                     Save Asset
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ADD MANUAL SUBSCRIBER MODAL */}
+        {isAddSubscriberOpen && (
+          <div className="fixed inset-0 z-50 bg-north-black/80 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-sm">
+            <div className="border-2 border-north-black bg-white w-full max-w-md shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+              <div className="border-b border-north-black p-5 bg-north-bg flex items-center justify-between">
+                <h3 className="font-heading font-extrabold text-lg uppercase flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-north-lime-dark" />
+                  <span>Add Blog Subscriber</span>
+                </h3>
+                <button onClick={() => setIsAddSubscriberOpen(false)} className="btn-north bg-white text-black py-1 px-3">
+                  Close
+                </button>
+              </div>
+              <form onSubmit={handleAddSubscriber} className="p-6 space-y-4">
+                <div>
+                  <label className="font-heading font-bold text-xs uppercase block mb-1">Subscriber Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. creative.editor@gmail.com"
+                    value={newSubEmail}
+                    onChange={(e) => setNewSubEmail(e.target.value)}
+                    className="w-full p-3 bg-north-bg border border-north-black text-xs font-mono focus:outline-none focus:ring-2 focus:ring-north-lime"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-heading font-bold text-xs uppercase block mb-1">Subscription Channel / Source</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Manual Admin, Client Lead, Event"
+                    value={newSubSource}
+                    onChange={(e) => setNewSubSource(e.target.value)}
+                    className="w-full p-3 bg-north-bg border border-north-black text-xs"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-north-black">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddSubscriberOpen(false)}
+                    className="btn-north bg-white text-black text-xs py-2.5 px-4"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    Save Subscriber
                   </button>
                 </div>
               </form>
