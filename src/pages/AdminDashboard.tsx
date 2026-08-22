@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -439,6 +439,82 @@ Write your article introduction here explaining key concepts, goals, and visual 
     a.click();
     URL.revokeObjectURL(url);
     showNotify('Subscribers list exported as CSV!');
+  };
+
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      if (!content) {
+        showNotify('Failed to read CSV file.');
+        return;
+      }
+
+      const lines = content.split(/\r\n|\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        showNotify('CSV file is empty.');
+        return;
+      }
+
+      let importedCount = 0;
+      let duplicateCount = 0;
+      const existingEmails = new Set(subscribers.map((s) => s.email.toLowerCase()));
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const newSubscriberList: BlogSubscriber[] = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Split columns by comma, semicolon, or tab while stripping outer quotes
+        const cols = line.split(/[,;\t]/).map((c) => c.replace(/^["']|["']$/g, '').trim());
+        
+        // Find which column contains a valid email address
+        const emailCol = cols.find((c) => emailRegex.test(c));
+        if (emailCol) {
+          const email = emailCol.toLowerCase();
+          if (existingEmails.has(email)) {
+            duplicateCount++;
+          } else {
+            existingEmails.add(email);
+            // Detect optional source column (not an email, not numeric ID)
+            const sourceCol = cols.find(
+              (c) => c !== emailCol && c.length > 0 && !c.includes('@') && isNaN(Number(c)) && !c.startsWith('sub_')
+            );
+            const source = sourceCol || 'CSV Import';
+
+            const newSub: BlogSubscriber = {
+              id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              email,
+              source,
+              status: 'active',
+              createdAt: new Date().toISOString()
+            };
+            newSubscriberList.push(newSub);
+            importedCount++;
+          }
+        }
+      }
+
+      if (newSubscriberList.length > 0) {
+        for (const sub of newSubscriberList) {
+          saveStoredSubscriber(sub);
+        }
+        setSubscribers(getStoredSubscribers());
+        showNotify(`Imported ${importedCount} subscriber(s)! (${duplicateCount} duplicate(s) skipped)`);
+      } else {
+        showNotify(duplicateCount > 0 ? `All ${duplicateCount} email(s) already exist in your list.` : 'No valid emails found in CSV.');
+      }
+
+      // Reset file input so user can import again
+      if (csvFileInputRef.current) {
+        csvFileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleSendSingleTestEmail = async (subEmail: string) => {
@@ -1178,6 +1254,25 @@ Write your article introduction here explaining key concepts, goals, and visual 
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export CSV</span>
+                    </button>
+
+                    {/* Hidden CSV File Input */}
+                    <input
+                      type="file"
+                      ref={csvFileInputRef}
+                      accept=".csv,text/csv"
+                      onChange={handleImportCSV}
+                      className="hidden"
+                    />
+
+                    {/* Import CSV Button */}
+                    <button
+                      onClick={() => csvFileInputRef.current?.click()}
+                      className="btn-north bg-white text-north-black hover:bg-north-lime text-xs font-heading font-bold uppercase py-2.5 px-3.5 inline-flex items-center gap-1.5 border border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      title="Upload a CSV file containing subscriber emails"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Import CSV</span>
                     </button>
 
                     <button
