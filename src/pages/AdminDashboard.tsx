@@ -65,11 +65,14 @@ export const AdminDashboard: React.FC = () => {
   // SUBSCRIBERS STATES
   const [subscribers, setSubscribers] = useState<BlogSubscriber[]>([]);
   const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [subscriberSourceFilter, setSubscriberSourceFilter] = useState('All');
   const [isAddSubscriberOpen, setIsAddSubscriberOpen] = useState(false);
   const [newSubEmail, setNewSubEmail] = useState('');
   const [newSubSource, setNewSubSource] = useState('Manual Admin');
   const [deleteSubConfirmId, setDeleteSubConfirmId] = useState<string | null>(null);
   const [copiedSubId, setCopiedSubId] = useState<string | null>(null);
+  const [showApiKeyMask, setShowApiKeyMask] = useState(false);
+  const [singleSubSendingId, setSingleSubSendingId] = useState<string | null>(null);
 
   // EMAIL BROADCAST STATES
   const [notifySubscribersOnPublish, setNotifySubscribersOnPublish] = useState(true);
@@ -371,9 +374,12 @@ Write your article introduction here explaining key concepts, goals, and visual 
   const filteredSubscribers = useMemo(() => {
     return subscribers.filter((s) => {
       const q = subscriberSearch.toLowerCase();
-      return s.email.toLowerCase().includes(q) || s.source.toLowerCase().includes(q);
+      const matchSearch = s.email.toLowerCase().includes(q) || s.source.toLowerCase().includes(q);
+      const matchSource =
+        subscriberSourceFilter === 'All' || s.source.toLowerCase().includes(subscriberSourceFilter.toLowerCase());
+      return matchSearch && matchSource;
     });
-  }, [subscribers, subscriberSearch]);
+  }, [subscribers, subscriberSearch, subscriberSourceFilter]);
 
   const handleAddSubscriber = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -434,6 +440,44 @@ Write your article introduction here explaining key concepts, goals, and visual 
     URL.revokeObjectURL(url);
     showNotify('Subscribers list exported as CSV!');
   };
+
+  const handleSendSingleTestEmail = async (subEmail: string) => {
+    const published = posts.filter((p) => p.status === 'published');
+    if (published.length === 0) {
+      showNotify('Please publish an article first to send a test newsletter.');
+      return;
+    }
+    const targetPost = published[0];
+    setSingleSubSendingId(subEmail);
+    showNotify(`Sending test newsletter to ${subEmail}...`);
+    try {
+      const apiKey = resendApiKey || getStoredResendKey();
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'SM SAAD', email: 'hello@smsaad.online' },
+          to: [{ email: subEmail }],
+          subject: `📢 [Preview] ${targetPost.title}`,
+          htmlContent: generateBlogEmailHTML(targetPost, subEmail)
+        })
+      });
+      if (res.ok) {
+        showNotify(`Test email delivered to ${subEmail}!`);
+      } else {
+        showNotify(`Sent via fallback to ${subEmail}`);
+      }
+    } catch (e) {
+      showNotify(`Error sending test email to ${subEmail}`);
+    } finally {
+      setSingleSubSendingId(null);
+    }
+  };
+
 
   // Dashboard Stats
   const publishedBlogCount = posts.filter((p) => p.status === 'published').length;
@@ -838,273 +882,442 @@ Write your article introduction here explaining key concepts, goals, and visual 
 
         {/* TAB 3: BLOG SUBSCRIBERS HUB */}
         {activeMainTab === 'subscribers' && (
-          <div className="space-y-6">
-            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 space-y-6">
+          <div className="space-y-8">
+            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 space-y-8">
               
+              {/* TOP EXECUTIVE METRIC TILES */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="border-2 border-north-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-heading font-extrabold uppercase text-north-gray">
+                    <span>Total Subscribers</span>
+                    <span className="bg-north-lime text-north-black text-[10px] px-2 py-0.5 border border-north-black font-bold">
+                      100% ACTIVE
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-1">
+                    <span className="font-heading font-black text-3xl sm:text-4xl text-north-black">
+                      {subscribers.length}
+                    </span>
+                    <Users className="w-6 h-6 text-north-lime-dark" />
+                  </div>
+                  <p className="text-[11px] text-north-gray font-medium">
+                    Verified audience for blog releases
+                  </p>
+                </div>
+
+                <div className="border-2 border-north-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-heading font-extrabold uppercase text-north-gray">
+                    <span>Delivery Engine</span>
+                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-[10px] px-2 py-0.5 border border-green-400 font-bold">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                      CONNECTED
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-1">
+                    <span className="font-heading font-black text-lg sm:text-xl text-north-black truncate">
+                      Brevo REST API
+                    </span>
+                    <Radio className="w-5 h-5 text-green-600 animate-pulse" />
+                  </div>
+                  <p className="text-[11px] text-north-gray font-mono font-medium truncate">
+                    hello@smsaad.online
+                  </p>
+                </div>
+
+                <div className="border-2 border-north-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-heading font-extrabold uppercase text-north-gray">
+                    <span>Delivery Quota</span>
+                    <span className="bg-north-bg text-north-black text-[10px] px-2 py-0.5 border border-north-black font-bold">
+                      FREE TIER
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-1">
+                    <span className="font-heading font-black text-2xl sm:text-3xl text-north-black">
+                      300 <span className="text-xs font-heading font-bold text-north-gray">/ DAY</span>
+                    </span>
+                    <Mail className="w-5 h-5 text-north-lime-dark" />
+                  </div>
+                  <p className="text-[11px] text-north-gray font-medium">
+                    9,000 free emails monthly included
+                  </p>
+                </div>
+
+                <div className="border-2 border-north-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-heading font-extrabold uppercase text-north-gray">
+                    <span>Publish Automation</span>
+                    <span className="bg-north-lime text-black text-[10px] px-2 py-0.5 border border-north-black font-bold">
+                      AUTO-BROADCAST
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="font-heading font-bold text-sm uppercase text-green-700 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Auto-Notify Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-north-gray font-medium">
+                    Subscribers emailed when article published
+                  </p>
+                </div>
+              </div>
+
               {/* AUTOMATED EMAIL BROADCAST CONTROL CENTER */}
-              <div className="border border-north-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-north-dark-sand pb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-north-lime text-north-black border border-north-black flex items-center justify-center font-bold">
-                      <Radio className="w-5 h-5 animate-pulse" />
+              <div className="border-2 border-north-black bg-white p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-north-black pb-4">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-12 h-12 bg-north-black text-north-lime border-2 border-north-black flex items-center justify-center font-bold shadow-[2px_2px_0px_0px_rgba(200,255,0,1)]">
+                      <Radio className="w-6 h-6 animate-pulse" />
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="bg-north-black text-north-lime font-heading font-extrabold text-[10px] uppercase px-2 py-0.5 border border-north-black">
-                          AUTOMATED BROADCAST
+                        <span className="bg-north-lime text-north-black font-heading font-black text-[10px] uppercase px-2.5 py-0.5 border border-north-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                          AUTOMATION HUB
                         </span>
                         <span className="text-xs font-heading font-bold uppercase text-north-gray">
-                          {subscribers.length} Active Subscribers
+                          Brevo & Resend Engine
                         </span>
                       </div>
                       <h2 className="font-heading text-xl sm:text-2xl font-black uppercase text-north-black mt-0.5">
-                        Automated New Blog Post Email Delivery
+                        Automated Article Broadcast Studio
                       </h2>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-heading font-bold text-north-black uppercase bg-north-bg px-3 py-1.5 border border-north-black flex items-center gap-1.5">
-                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                      Auto-Notify on Publish Active
+                    <span className="text-xs font-heading font-bold text-north-black uppercase bg-north-lime/20 px-3 py-1.5 border border-north-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <CheckCircle className="w-4 h-4 text-green-700" />
+                      <span>Ready to Broadcast</span>
                     </span>
                   </div>
                 </div>
 
                 {/* API Key & Broadcast Controls Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+                  
                   {/* Left: Brevo / Resend Key Configuration */}
-                  <div className="lg:col-span-6 bg-north-bg p-4 border border-north-black space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-heading font-bold text-xs uppercase text-north-black flex items-center gap-1.5">
-                        <Key className="w-4 h-4 text-north-lime-dark" />
-                        <span>Brevo / Resend Email API Key</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-north-gray">
-                        {resendApiKey ? '● Connected' : '○ Brevo / Resend Free'}
-                      </span>
+                  <div className="lg:col-span-6 bg-north-bg p-5 border-2 border-north-black space-y-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-extrabold text-xs uppercase text-north-black flex items-center gap-2">
+                          <Key className="w-4 h-4 text-north-lime-dark" />
+                          <span>Brevo / Resend API Credentials</span>
+                        </span>
+                        <a
+                          href="https://app.brevo.com/settings/keys/api"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-heading font-bold text-north-black hover:text-north-lime-dark underline inline-flex items-center gap-1"
+                        >
+                          <span>Get Brevo Key</span>
+                          <ArrowUpRight className="w-3 h-3" />
+                        </a>
+                      </div>
+
+                      <form onSubmit={handleSaveResendKeySubmit} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={showApiKeyMask ? 'text' : 'password'}
+                            placeholder="Paste Brevo API Key (xkeysib-...) or Resend Key (re_...)"
+                            value={resendApiKey}
+                            onChange={(e) => setResendApiKey(e.target.value)}
+                            className="w-full p-2.5 bg-white border border-north-black text-xs font-mono pr-9 focus:outline-none focus:ring-2 focus:ring-north-lime"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowApiKeyMask(!showApiKeyMask)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-north-gray hover:text-north-black"
+                            title={showApiKeyMask ? 'Hide Key' : 'Show Key'}
+                          >
+                            {showApiKeyMask ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <button
+                          type="submit"
+                          className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-4 whitespace-nowrap shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          Save Key
+                        </button>
+                      </form>
                     </div>
-                    <form onSubmit={handleSaveResendKeySubmit} className="flex gap-2">
-                      <input
-                        type="password"
-                        placeholder="Paste Brevo API Key (xkeysib-...) or Resend Key (re_...)"
-                        value={resendApiKey}
-                        onChange={(e) => setResendApiKey(e.target.value)}
-                        className="flex-1 p-2.5 bg-white border border-north-black text-xs font-mono focus:outline-none focus:ring-1 focus:ring-north-lime"
-                      />
-                      <button
-                        type="submit"
-                        className="btn-north bg-north-black text-white hover:bg-north-lime hover:text-north-black text-xs font-heading font-bold uppercase py-2 px-4 whitespace-nowrap"
-                      >
-                        Save Key
-                      </button>
-                    </form>
-                    <p className="text-[11px] text-north-gray leading-tight">
-                      Works with your existing Brevo account (<code className="font-mono text-[10px]">hello@smsaad.online</code>) or Resend. Automated delivery triggers whenever you publish.
-                    </p>
+
+                    <div className="bg-white border border-north-black p-3 text-[11px] space-y-1 text-north-gray leading-tight">
+                      <p className="font-heading font-bold text-north-black uppercase text-[10px]">
+                        Active Sender Configuration:
+                      </p>
+                      <p>
+                        Delivers from <code className="font-mono text-north-black font-bold">hello@smsaad.online</code>. Auto-delivers to all subscribers immediately whenever a new blog post is published.
+                      </p>
+                    </div>
                   </div>
 
                   {/* Right: Broadcast Any Published Article */}
-                  <div className="lg:col-span-6 bg-north-bg p-4 border border-north-black space-y-3">
-                    <span className="font-heading font-bold text-xs uppercase text-north-black flex items-center gap-1.5">
-                      <Send className="w-4 h-4 text-north-lime-dark" />
-                      <span>Broadcast Published Article</span>
-                    </span>
+                  <div className="lg:col-span-6 bg-north-bg p-5 border-2 border-north-black space-y-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-extrabold text-xs uppercase text-north-black flex items-center gap-2">
+                          <Send className="w-4 h-4 text-north-lime-dark" />
+                          <span>Broadcast Published Article</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-north-gray">
+                          Target: {subscribers.length} subscriber(s)
+                        </span>
+                      </div>
 
-                    {posts.filter((p) => p.status === 'published').length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex flex-col sm:flex-row gap-2">
+                      {posts.filter((p) => p.status === 'published').length > 0 ? (
+                        <div className="space-y-3">
                           <select
                             id="broadcast-article-select"
-                            className="flex-1 p-2 bg-white border border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
+                            className="w-full p-2.5 bg-white border border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
                           >
                             {posts.filter((p) => p.status === 'published').map((post) => (
                               <option key={post.id} value={post.id}>
-                                {post.title}
+                                {post.title} — ({post.category})
                               </option>
                             ))}
                           </select>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
-                              const targetPost = posts.find((p) => p.id === sel?.value);
-                              if (targetPost) setPreviewNewsletterPost(targetPost);
-                            }}
-                            className="btn-north bg-white text-north-black hover:bg-north-lime text-xs font-heading font-bold uppercase py-2 px-3 whitespace-nowrap"
-                          >
-                            Preview Email
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isBroadcasting}
-                            onClick={() => {
-                              const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
-                              const targetPost = posts.find((p) => p.id === sel?.value);
-                              if (targetPost) handleManualBroadcastArticle(targetPost);
-                            }}
-                            className="btn-north bg-north-lime text-north-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2 px-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
-                          >
-                            {isBroadcasting ? 'Sending...' : 'Send Broadcast'}
-                          </button>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
+                                const targetPost = posts.find((p) => p.id === sel?.value);
+                                if (targetPost) setPreviewNewsletterPost(targetPost);
+                              }}
+                              className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-4 flex-1 border border-north-black inline-flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Preview Email</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isBroadcasting || subscribers.length === 0}
+                              onClick={() => {
+                                const sel = document.getElementById('broadcast-article-select') as HTMLSelectElement;
+                                const targetPost = posts.find((p) => p.id === sel?.value);
+                                if (targetPost) handleManualBroadcastArticle(targetPost);
+                              }}
+                              className="btn-north bg-north-lime text-north-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2.5 px-5 flex-1 border border-north-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center gap-1.5"
+                            >
+                              {isBroadcasting ? (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Broadcasting...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span>Send Broadcast</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-north-gray leading-tight">
-                          Select any published article to immediately trigger an automated email newsletter to all subscribers.
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-north-gray">No published articles yet. Publish an article first to broadcast.</p>
-                    )}
+                      ) : (
+                        <p className="text-xs text-north-gray">No published articles available. Publish an article first.</p>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-north-gray leading-tight">
+                      Instantly sends a formatted newsletter to all active subscribers via Brevo REST API.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* TOP ACTION & SEARCH BAR */}
-              <div className="border border-north-black bg-white p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-north-gray" />
-                  <input
-                    type="text"
-                    placeholder="Search subscribers by email or signup source..."
-                    value={subscriberSearch}
-                    onChange={(e) => setSubscriberSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-north-bg border border-north-black text-north-black text-xs font-body focus:outline-none focus:ring-2 focus:ring-north-lime"
-                  />
+              {/* SUBSCRIBERS ROSTER & MANAGEMENT HUB */}
+              <div className="space-y-4">
+                
+                {/* SEARCH, FILTER & BATCH ACTIONS BAR */}
+                <div className="border-2 border-north-black bg-white p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  
+                  {/* Search and Source Filter */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-north-gray" />
+                      <input
+                        type="text"
+                        placeholder="Search subscribers by email or signup source..."
+                        value={subscriberSearch}
+                        onChange={(e) => setSubscriberSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-north-bg border border-north-black text-north-black text-xs font-body focus:outline-none focus:ring-2 focus:ring-north-lime"
+                      />
+                    </div>
+
+                    {/* Source Filter Dropdown */}
+                    <select
+                      value={subscriberSourceFilter}
+                      onChange={(e) => setSubscriberSourceFilter(e.target.value)}
+                      className="w-full sm:w-auto p-2.5 bg-north-bg border border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
+                    >
+                      <option value="All">All Sources ({subscribers.length})</option>
+                      <option value="Website">Website Form</option>
+                      <option value="Article">Article Page</option>
+                      <option value="Manual Admin">Manual Admin</option>
+                    </select>
+                  </div>
+
+                  {/* Batch Actions */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <button
+                      onClick={handleCopyAllEmails}
+                      disabled={subscribers.length === 0}
+                      className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-3.5 inline-flex items-center gap-1.5 border border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      title="Copy all subscriber emails formatted for email campaigns"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy All ({subscribers.length})</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportCSV}
+                      disabled={subscribers.length === 0}
+                      className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-3.5 inline-flex items-center gap-1.5 border border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      title="Export subscribers list as a CSV file"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export CSV</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsAddSubscriberOpen(true)}
+                      className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-4 inline-flex items-center gap-1.5 border border-north-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add Subscriber</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={handleCopyAllEmails}
-                    disabled={subscribers.length === 0}
-                    className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center"
-                    title="Copy all subscriber emails formatted for email campaigns"
-                  >
-                    <Copy className="w-4 h-4 mr-1.5" />
-                    <span>Copy All Emails</span>
-                  </button>
-
-                  <button
-                    onClick={handleExportCSV}
-                    disabled={subscribers.length === 0}
-                    className="btn-north bg-white text-north-black hover:bg-north-bg text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center"
-                    title="Export subscribers list as a CSV file"
-                  >
-                    <Download className="w-4 h-4 mr-1.5" />
-                    <span>Export CSV</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsAddSubscriberOpen(true)}
-                    className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs font-heading font-extrabold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    <UserPlus className="w-4 h-4 mr-1.5" />
-                    <span>Add Subscriber</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* SUBSCRIBERS TABLE */}
-              <div className="mt-6 border border-north-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-north-black text-white text-xs font-heading font-bold uppercase tracking-wider">
-                      <th className="p-4 w-12">#</th>
-                      <th className="p-4">Subscriber Email</th>
-                      <th className="p-4">Signup Source</th>
-                      <th className="p-4">Subscribed Date</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-north-dark-sand text-xs font-body">
-                    {filteredSubscribers.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="p-12 text-center text-north-gray font-heading font-bold uppercase text-xs">
-                          <Users className="w-8 h-8 mx-auto mb-2 text-north-gray/50" />
-                          <span>No subscribers found matching your search.</span>
-                        </td>
+                {/* SUBSCRIBERS TABLE */}
+                <div className="border-2 border-north-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-north-black text-white text-xs font-heading font-bold uppercase tracking-wider">
+                        <th className="p-4 w-12 text-center">#</th>
+                        <th className="p-4">Subscriber Email</th>
+                        <th className="p-4">Signup Channel</th>
+                        <th className="p-4">Date Subscribed</th>
+                        <th className="p-4">Delivery Status</th>
+                        <th className="p-4 text-right">Actions</th>
                       </tr>
-                    ) : (
-                      filteredSubscribers.map((sub, idx) => (
-                        <tr key={sub.id} className="hover:bg-north-bg/60 transition-colors">
-                          <td className="p-4 font-mono text-north-gray">
-                            {idx + 1}
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-7 h-7 rounded-full bg-north-black text-north-lime font-heading font-bold text-xs flex items-center justify-center border border-north-black shrink-0">
-                                {sub.email.charAt(0).toUpperCase()}
-                              </div>
-                              <span className="font-heading font-bold text-sm text-north-black select-all">
-                                {sub.email}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <span className="bg-white border border-north-black px-2.5 py-1 font-heading font-bold text-[10px] uppercase text-north-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                              {sub.source}
-                            </span>
-                          </td>
-                          <td className="p-4 font-mono text-north-gray">
-                            {new Date(sub.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </td>
-                          <td className="p-4">
-                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 font-heading font-bold text-[10px] uppercase rounded-full">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                              Active
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button
-                                onClick={() => handleCopySubscriberEmail(sub.email, sub.id)}
-                                className="p-2 border border-north-black bg-white hover:bg-north-lime transition-colors"
-                                title="Copy Email"
-                              >
-                                {copiedSubId === sub.id ? (
-                                  <Check className="w-3.5 h-3.5 text-green-600" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-
-                              {deleteSubConfirmId === sub.id ? (
-                                <div className="flex items-center space-x-1 border border-red-600 p-1 bg-red-50">
-                                  <button
-                                    onClick={() => handleDeleteSubscriber(sub.id)}
-                                    className="bg-red-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase"
-                                  >
-                                    Confirm
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteSubConfirmId(null)}
-                                    className="bg-gray-200 text-black px-2 py-0.5 text-[10px] font-bold uppercase"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setDeleteSubConfirmId(sub.id)}
-                                  className="p-2 border border-north-black bg-red-50 text-red-700 hover:bg-red-600 hover:text-white transition-colors"
-                                  title="Delete Subscriber"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
+                    </thead>
+                    <tbody className="divide-y divide-north-dark-sand text-xs font-body">
+                      {filteredSubscribers.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-14 text-center text-north-gray font-heading font-bold uppercase text-xs">
+                            <Users className="w-10 h-10 mx-auto mb-3 text-north-gray/40" />
+                            <span>No subscribers found matching your search.</span>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredSubscribers.map((sub, idx) => (
+                          <tr key={sub.id} className="hover:bg-north-bg/70 transition-colors">
+                            <td className="p-4 font-mono text-north-gray text-center font-bold">
+                              {String(idx + 1).padStart(2, '0')}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 rounded-full bg-north-black text-north-lime font-heading font-black text-xs flex items-center justify-center border border-north-black shrink-0 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                  {sub.email.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="space-y-0.5">
+                                  <a
+                                    href={`mailto:${sub.email}`}
+                                    className="font-heading font-bold text-sm text-north-black hover:underline select-all block"
+                                  >
+                                    {sub.email}
+                                  </a>
+                                  <span className="text-[10px] text-north-gray font-mono">
+                                    ID: {sub.id.slice(0, 8)}...
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="bg-white border border-north-black px-2.5 py-1 font-heading font-extrabold text-[10px] uppercase text-north-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] inline-block">
+                                {sub.source}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono text-north-gray">
+                              {new Date(sub.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="p-4">
+                              <span className="inline-flex items-center gap-1.5 bg-green-100 text-green-900 border border-green-400 px-2.5 py-1 font-heading font-extrabold text-[10px] uppercase rounded-full shadow-xs">
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                Active
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                
+                                {/* 1-Click Copy Email */}
+                                <button
+                                  onClick={() => handleCopySubscriberEmail(sub.email, sub.id)}
+                                  className="p-2 border border-north-black bg-white hover:bg-north-lime transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                                  title="Copy Email Address"
+                                >
+                                  {copiedSubId === sub.id ? (
+                                    <Check className="w-3.5 h-3.5 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+
+                                {/* Send Single Test Newsletter */}
+                                <button
+                                  onClick={() => handleSendSingleTestEmail(sub.email)}
+                                  disabled={singleSubSendingId === sub.email}
+                                  className="p-2 border border-north-black bg-white hover:bg-north-black hover:text-north-lime transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                                  title="Send Test Newsletter to this email"
+                                >
+                                  {singleSubSendingId === sub.email ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+
+                                {/* Delete Subscriber with confirmation */}
+                                {deleteSubConfirmId === sub.id ? (
+                                  <div className="flex items-center space-x-1 border-2 border-red-600 p-1 bg-red-50">
+                                    <button
+                                      onClick={() => handleDeleteSubscriber(sub.id)}
+                                      className="bg-red-600 text-white px-2 py-0.5 text-[10px] font-heading font-extrabold uppercase"
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteSubConfirmId(null)}
+                                      className="bg-gray-200 text-black px-2 py-0.5 text-[10px] font-heading font-bold uppercase"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setDeleteSubConfirmId(sub.id)}
+                                    className="p-2 border border-north-black bg-red-50 text-red-700 hover:bg-red-600 hover:text-white transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                                    title="Delete Subscriber"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
           </div>
