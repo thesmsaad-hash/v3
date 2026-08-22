@@ -4,7 +4,6 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { CustomCursor } from './components/CustomCursor';
 import { ChatAgent } from './components/ChatAgent/ChatAgent';
-import { seedSupabaseIfEmpty } from './utils/seedDatabase';
 
 // Pages
 import { Home } from './pages/Home';
@@ -34,11 +33,6 @@ const ScrollToTop: React.FC = () => {
 };
 
 export const App: React.FC = () => {
-  // Seed Supabase tables with default data if they are empty
-  useEffect(() => {
-    seedSupabaseIfEmpty();
-  }, []);
-
   return (
     <Router>
       <CustomCursor />
@@ -77,4 +71,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

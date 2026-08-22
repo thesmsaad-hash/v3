@@ -189,17 +189,20 @@ export const incrementDownloadCount = (id: string): DigitalAsset[] => {
   return updated;
 };
 
-export const deleteStoredDigitalAsset = (id: string): DigitalAsset[] => {
+export const deleteStoredDigitalAsset = async (id: string): Promise<DigitalAsset[]> => {
   const current = getStoredDigitalAssets();
-  const updated = current.filter((a) => a.id !== id);
+  const updated = current.filter((p) => p.id !== id);
 
   // 1. Remove locally
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
-  // 2. Remove from Supabase in background
-  deleteAssetFromDB(id).then((ok) => {
-    if (ok) console.log('[DB] Asset deleted from Supabase:', id);
-  });
+  // 2. Await removal from Supabase
+  try {
+    await deleteAssetFromDB(id);
+    console.log('[DB] Asset deleted from Supabase:', id);
+  } catch (e) {
+    console.warn('[DB] Error deleting asset from Supabase:', e);
+  }
 
   return updated;
 };

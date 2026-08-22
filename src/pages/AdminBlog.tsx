@@ -102,8 +102,8 @@ export const AdminBlog: React.FC = () => {
     showNotify(`Post "${post.title}" is now ${newStatus.toUpperCase()}`);
   };
 
-  const handleDelete = (id: string) => {
-    const updated = deleteStoredBlogPost(id);
+  const handleDelete = async (id: string) => {
+    const updated = await deleteStoredBlogPost(id);
     setPosts(updated);
     setDeleteConfirmId(null);
     showNotify('Blog post deleted successfully.');

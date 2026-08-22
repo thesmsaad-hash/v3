@@ -160,11 +160,11 @@ Write your article introduction here explaining key concepts, goals, and visual 
     showNotify(`Article "${post.title}" status updated to ${newStatus.toUpperCase()}`);
   };
 
-  const handleDeleteBlog = (id: string) => {
-    const updated = deleteStoredBlogPost(id);
+  const handleDeleteBlog = async (id: string) => {
+    const updated = await deleteStoredBlogPost(id);
     setPosts(updated);
     setDeleteBlogConfirmId(null);
-    showNotify('Article deleted.');
+    showNotify('Article deleted from Supabase.');
   };
 
   const handleResetBlogs = () => {
@@ -272,11 +272,11 @@ Write your article introduction here explaining key concepts, goals, and visual 
     showNotify(`Digital Asset "${assetToSave.title}" saved!`);
   };
 
-  const handleDeleteAsset = (id: string) => {
-    const updated = deleteStoredDigitalAsset(id);
+  const handleDeleteAsset = async (id: string) => {
+    const updated = await deleteStoredDigitalAsset(id);
     setAssets(updated);
     setDeleteAssetConfirmId(null);
-    showNotify('Digital asset deleted.');
+    showNotify('Digital asset deleted from Supabase.');
   };
 
   const handleResetAssets = () => {

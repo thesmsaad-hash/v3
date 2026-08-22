@@ -102,17 +102,20 @@ export const saveStoredBlogPost = (post: ExtendedBlogPost): ExtendedBlogPost[] =
   return updated;
 };
 
-export const deleteStoredBlogPost = (id: string): ExtendedBlogPost[] => {
+export const deleteStoredBlogPost = async (id: string): Promise<ExtendedBlogPost[]> => {
   const current = getStoredBlogPosts();
   const updated = current.filter((p) => p.id !== id);
 
   // 1. Remove locally
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
-  // 2. Remove from Supabase in background
-  deleteBlogPostFromDB(id).then((ok) => {
-    if (ok) console.log('[DB] Blog post deleted from Supabase:', id);
-  });
+  // 2. Await removal from Supabase
+  try {
+    await deleteBlogPostFromDB(id);
+    console.log('[DB] Blog post deleted from Supabase:', id);
+  } catch (e) {
+    console.warn('[DB] Error deleting blog post from Supabase:', e);
+  }
 
   return updated;
 };
