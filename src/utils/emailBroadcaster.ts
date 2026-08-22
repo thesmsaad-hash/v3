@@ -31,6 +31,17 @@ export const saveStoredResendKey = (key: string): void => {
 export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: string): string => {
   const articleUrl = `https://smsaad.online/blogs/${post.id}`;
   const siteUrl = 'https://smsaad.online';
+
+  // Ensure image URL is fully qualified with domain so email clients can render it
+  let imageUrl = post.image || '';
+  if (imageUrl) {
+    if (imageUrl.startsWith('data:')) {
+      // If base64, avoid email bloat so Gmail never clips the message
+      imageUrl = 'https://smsaad.online/assets/images/works1.jpg';
+    } else if (!imageUrl.startsWith('http')) {
+      imageUrl = `https://smsaad.online${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+  }
   
   return `<!DOCTYPE html>
 <html>
@@ -40,19 +51,19 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
   <title>${post.title} — New Article by SM SAAD</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f7f6f2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111111;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f7f6f2; padding: 30px 15px;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f7f6f2; padding: 25px 10px;">
     <tr>
       <td align="center">
         <!-- Main Card Container -->
-        <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border: 2px solid #111111; box-shadow: 6px 6px 0px 0px #111111;">
+        <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border: 2px solid #111111; box-shadow: 4px 4px 0px 0px #111111;">
           
           <!-- Header Banner -->
           <tr>
-            <td style="background-color: #111111; padding: 20px 30px; text-align: left;">
+            <td style="background-color: #111111; padding: 18px 24px; text-align: left;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    <span style="font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: 1px; text-transform: uppercase;">
+                    <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 1px; text-transform: uppercase;">
                       SM SAAD <span style="color: #c8ff00;">•</span> CREATOR INSIGHTS
                     </span>
                   </td>
@@ -68,10 +79,10 @@ export const generateBlogEmailHTML = (post: ExtendedBlogPost, subscriberEmail?: 
 
           <!-- Cover Image (if available) -->
           ${
-            post.image
+            imageUrl
               ? `<tr>
-            <td style="padding: 0;">
-              <img src="${post.image}" alt="${post.title}" style="width: 100%; max-height: 300px; object-fit: cover; display: block; border-bottom: 2px solid #111111;" />
+            <td style="padding: 0; background-color: #111111;">
+              <img src="${imageUrl}" alt="${post.title}" style="width: 100%; max-height: 320px; object-fit: cover; display: block; border-bottom: 2px solid #111111;" />
             </td>
           </tr>`
               : ''
