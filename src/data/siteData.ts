@@ -49,6 +49,7 @@ export interface WorkflowItem {
 }
 
 export interface EducationItem {
+  degree?: string;
   institution: string;
   focus: string;
   details: string;
@@ -378,9 +379,10 @@ export const currentlyExploring = [
 
 export const educationData: EducationItem[] = [
   {
+    degree: "Master's in Generative AI",
     institution: "Arena Animation",
-    focus: "Animation, VFX, Compositing & Creative Production",
-    details: "Comprehensive professional training in digital post-production, visual effects compositing, 2D/3D motion graphics, and audio-visual production."
+    focus: "Gen AI (Media & Entertainment), Animation, VFX & Creative Production",
+    details: "Master's program in Generative AI for Media & Entertainment at Arena Animation. Comprehensive professional training in AI-assisted video editing, visual effects compositing, 2D/3D motion graphics, and next-generation creative media workflows."
   }
 ];
 

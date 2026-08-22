@@ -135,7 +135,14 @@ export const About: React.FC = () => {
           <div className="space-y-6">
             {educationData.map((edu, idx) => (
               <div key={idx} className="border border-north-dark-sand p-6 bg-north-bg space-y-3">
-                <h3 className="font-heading font-bold text-2xl uppercase text-north-black">{edu.institution}</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-heading font-bold text-2xl uppercase text-north-black">{edu.institution}</h3>
+                  {edu.degree && (
+                    <span className="bg-north-black text-north-lime font-heading font-bold text-xs uppercase px-3 py-1 border border-north-black">
+                      {edu.degree}
+                    </span>
+                  )}
+                </div>
                 <div className="inline-block bg-north-lime text-north-black font-heading font-bold text-xs uppercase px-3 py-1 border border-north-black">
                   Focus: {edu.focus}
                 </div>
