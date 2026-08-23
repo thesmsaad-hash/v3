@@ -76,11 +76,6 @@ export const Home: React.FC = () => {
     return toolsData.filter((t) => t.category === toolCategory);
   }, [toolCategory]);
 
-  const synaptoProject = projectsData[0];
-  const gridProjects = projectCategory === 'All' 
-    ? filteredProjects.slice(1) 
-    : (projectCategory === 'Web' ? filteredProjects.filter(p => p.id !== synaptoProject.id) : filteredProjects);
-
   return (
     <div className="bg-north-bg text-north-black overflow-hidden">
       <SEO
@@ -430,13 +425,13 @@ export const Home: React.FC = () => {
                 Featured Work & Creations
               </h2>
               <p className="text-north-gray text-base max-w-xl">
-                Explore a selection of recent video edits, VFX compositions, and web applications.
+                Explore a selection of recent video edits, VFX compositions, and motion design projects.
               </p>
             </div>
 
             {/* Category Filter Tabs */}
             <div className="flex items-center gap-2 flex-wrap">
-              {['All', 'Video', 'VFX', 'Web'].map((cat) => (
+              {['All', 'Video Editing', 'VFX & Motion'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setProjectCategory(cat)}
@@ -452,78 +447,16 @@ export const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* SYNAPTO FEATURED BANNER */}
-          {(projectCategory === 'All' || projectCategory === 'Web') && (
-            <div className="border border-north-black bg-white p-8 md:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-              <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center space-x-2 bg-north-black text-north-lime px-3 py-1 border border-north-black font-heading font-bold text-xs uppercase tracking-widest">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>FEATURED PROJECT SPOTLIGHT</span>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-heading text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-north-black">
-                    {synaptoProject.title}
-                  </h3>
-                  <span className="text-xs font-heading font-bold uppercase tracking-wider text-north-gray block">
-                    Category: {synaptoProject.category} • Timeline: {synaptoProject.timeline}
-                  </span>
-                </div>
-
-                <p className="text-north-gray font-body text-base sm:text-lg leading-relaxed">
-                  {synaptoProject.description}
-                </p>
-
-                <div className="space-y-2 pt-2">
-                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-north-black block">
-                    Project Focus:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {synaptoProject.focus?.map((f, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-north-bg border border-north-black text-north-black font-heading font-bold text-xs uppercase px-3 py-1"
-                      >
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 flex items-center space-x-4">
-                  <Button onClick={() => setSelectedProject(synaptoProject)}>View Project Details</Button>
-                  <span className="text-xs font-heading font-bold uppercase text-north-gray">
-                    [ Active Concept / Dev ]
-                  </span>
-                </div>
-              </div>
-
-              <div className="lg:col-span-5 border border-north-black bg-north-bg p-4 flex flex-col justify-between space-y-4">
-                <img
-                  src={synaptoProject.image}
-                  alt={synaptoProject.title}
-                  className="w-full h-72 object-cover border border-north-black"
-                />
-                <div className="p-2 border-t border-north-dark-sand flex items-center justify-between text-xs font-heading font-bold uppercase">
-                  <span>Application Identity: Synapto</span>
-                  <Sparkles className="w-4 h-4 text-north-lime-dark" />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* PROJECT CARDS GRID */}
-          {gridProjects.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {gridProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onPreview={(proj: ProjectItem) => setSelectedProject(proj)}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onPreview={(proj: ProjectItem) => setSelectedProject(proj)}
+              />
+            ))}
+          </div>
         </div>
       </section>
 

@@ -390,6 +390,7 @@ export const educationData: EducationItem[] = [
 ];
 
 export const projectsData: ProjectItem[] = [
+  /* Synapto hidden for now
   {
     id: "synapto",
     title: "Synapto",
@@ -408,6 +409,7 @@ export const projectsData: ProjectItem[] = [
     tags: ["React", "TypeScript", "Knowledge Management", "UI/UX", "Experimental"],
     type: "web"
   },
+  */
   {
     id: "ai-automation-testing-video",
     title: "Can Non-Coders Become Automation Testers Using AI?",

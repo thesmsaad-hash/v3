@@ -9,7 +9,7 @@ export const Works: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
 
-  const categories = ['All', 'Video Editing', 'VFX & Motion', 'Web Application', 'Experimental'];
+  const categories = ['All', 'Video Editing', 'VFX & Motion'];
 
   const filteredProjects = activeCategory === 'All'
     ? projectsData
@@ -22,8 +22,8 @@ export const Works: React.FC = () => {
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
       <SEO
         title="Recent Works & Video Projects — SM SAAD"
-        description="Explore recent works by SM SAAD, including video editing, VFX compositing, motion graphics, and web applications like Synapto."
-        keywords="SM SAAD Recent Works, Video Editing Showcase, VFX Compositing, Motion Graphics, Synapto Knowledge Management, YouTube video editing, React web applications"
+        description="Explore recent video editing, VFX compositing, and motion graphics projects by SM SAAD. Watch directly inline or preview in theater mode."
+        keywords="SM SAAD Recent Works, Video Editing Showcase, VFX Compositing, Motion Graphics, YouTube video editing, Premiere Pro, After Effects, DaVinci Resolve"
         canonical="https://smsaad.online/works"
         breadcrumbs={[{ name: 'Projects & Works', url: '/works' }]}
         schema={{
@@ -35,7 +35,7 @@ export const Works: React.FC = () => {
             name: 'SM SAAD',
             url: 'https://smsaad.online',
           },
-          description: 'A portfolio showcase of video editing, VFX compositing, motion graphics, and web application projects.',
+          description: 'A portfolio showcase of video editing, VFX compositing, and motion graphics projects.',
         }}
       />
       
@@ -49,7 +49,7 @@ export const Works: React.FC = () => {
             Recent Works & Projects
           </h1>
           <p className="text-north-gray font-body text-base sm:text-lg max-w-2xl">
-            A selection of video editing, VFX compositing, and modern digital web applications. Watch directly inline or preview in theater mode.
+            A curated selection of video editing, VFX compositing, motion graphics, and post-production projects. Watch directly inline or preview in theater mode.
           </p>
         </div>
       </section>
