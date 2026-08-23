@@ -23,6 +23,9 @@ export interface ProjectItem {
   focus?: string[];
   tags: string[];
   url?: string;
+  youtubeId?: string;
+  videoUrl?: string;
+  type?: 'video' | 'web' | 'experimental';
 }
 
 export interface ToolItem {
@@ -386,7 +389,6 @@ export const educationData: EducationItem[] = [
   }
 ];
 
-// SOLE PROJECT: SYNAPTO ONLY
 export const projectsData: ProjectItem[] = [
   {
     id: "synapto",
@@ -403,7 +405,71 @@ export const projectsData: ProjectItem[] = [
       "Modern User Interface",
       "Productivity"
     ],
-    tags: ["React", "TypeScript", "Knowledge Management", "UI/UX", "Experimental"]
+    tags: ["React", "TypeScript", "Knowledge Management", "UI/UX", "Experimental"],
+    type: "web"
+  },
+  {
+    id: "ai-automation-testing-video",
+    title: "Can Non-Coders Become Automation Testers Using AI?",
+    category: "Video Editing & AI",
+    client: "Mukesh Otwani / YouTube",
+    timeline: "2026",
+    image: "https://img.youtube.com/vi/_s20i3UX15M/hqdefault.jpg",
+    youtubeId: "_s20i3UX15M",
+    url: "https://youtu.be/_s20i3UX15M?si=ezWFMkor4EpyI9zK",
+    videoUrl: "https://www.youtube.com/watch?v=_s20i3UX15M",
+    description: "High-retention video editing and visual breakdowns exploring how non-coders and manual testers leverage AI coding agents, automation frameworks, and modern testing platforms.",
+    focus: [
+      "Visual Pacing & Pacing Rhythm",
+      "Motion Graphics & Callouts",
+      "AI Workflow Explanations",
+      "Sound Design & Audio Layering",
+      "High-Retention Editing"
+    ],
+    tags: ["Video Editing", "AI & Automation", "Motion Graphics", "YouTube", "Premiere Pro"],
+    type: "video"
+  },
+  {
+    id: "healing-journey-story-video",
+    title: "This Is What Healing Really Looks Like",
+    category: "Video Editing",
+    client: "Narrative / YouTube",
+    timeline: "2026",
+    image: "https://img.youtube.com/vi/KMTIw3JpOfY/hqdefault.jpg",
+    youtubeId: "KMTIw3JpOfY",
+    url: "https://youtu.be/KMTIw3JpOfY?si=bTkJHJag8z4T8K-6",
+    videoUrl: "https://www.youtube.com/watch?v=KMTIw3JpOfY",
+    description: "Cinematic narrative video editing featuring atmospheric visual pacing, emotional story arcs, subtle color grading, and deeply layered soundscapes.",
+    focus: [
+      "Cinematic Visual Storytelling",
+      "Emotional Pacing & Cuts",
+      "Color Grading & Atmosphere",
+      "Layered Ambient Sound Design",
+      "Narrative Arc Structuring"
+    ],
+    tags: ["Video Editing", "Storytelling", "Color Grading", "DaVinci Resolve", "Sound Design"],
+    type: "video"
+  },
+  {
+    id: "creative-vfx-motion-showcase",
+    title: "Cinematic Visuals & Creative Editing Showcase",
+    category: "VFX & Motion Graphics",
+    client: "Creative Showcase",
+    timeline: "2026",
+    image: "https://img.youtube.com/vi/G9CUoHh-jcs/hqdefault.jpg",
+    youtubeId: "G9CUoHh-jcs",
+    url: "https://youtu.be/G9CUoHh-jcs?si=Gtmdh_bXN4ZeK1O6",
+    videoUrl: "https://www.youtube.com/watch?v=G9CUoHh-jcs",
+    description: "Dynamic post-production showcase featuring multi-pass visual effects, custom kinetic typography, seamless transitions, speed ramps, and high-energy motion design.",
+    focus: [
+      "VFX Compositing & Multi-Pass",
+      "Kinetic Motion Design",
+      "After Effects Workflows",
+      "Speed Ramps & Transitions",
+      "Audio-Visual Synchronization"
+    ],
+    tags: ["VFX Compositing", "Motion Graphics", "After Effects", "Transitions", "Video Editing"],
+    type: "video"
   }
 ];
 

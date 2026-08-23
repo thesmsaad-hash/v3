@@ -9,31 +9,33 @@ export const Works: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
 
-  const categories = ['All', 'Web', 'Experimental'];
+  const categories = ['All', 'Video Editing', 'VFX & Motion', 'Web Application', 'Experimental'];
 
   const filteredProjects = activeCategory === 'All'
     ? projectsData
-    : projectsData.filter((p) => p.category.includes(activeCategory) || p.tags.includes(activeCategory));
+    : projectsData.filter((p) =>
+        p.category.toLowerCase().includes(activeCategory.toLowerCase()) ||
+        p.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase()))
+      );
 
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">
       <SEO
-        title="Projects & Work Showcase — Synapto Knowledge App"
-        description="Explore projects by SM SAAD, including Synapto (an experimental knowledge-management web application exploring notes, ideas, and connected knowledge graph)."
-        keywords="SM SAAD Projects, Synapto Knowledge Management, Synapto Web Application, React projects, TypeScript web app, SM SAAD Portfolio Projects"
+        title="Recent Works & Video Projects — SM SAAD"
+        description="Explore recent works by SM SAAD, including video editing, VFX compositing, motion graphics, and web applications like Synapto."
+        keywords="SM SAAD Recent Works, Video Editing Showcase, VFX Compositing, Motion Graphics, Synapto Knowledge Management, YouTube video editing, React web applications"
         canonical="https://smsaad.online/works"
         breadcrumbs={[{ name: 'Projects & Works', url: '/works' }]}
         schema={{
           '@context': 'https://schema.org',
           '@type': 'CreativeWork',
-          name: 'Synapto Knowledge Management Application',
+          name: 'SM SAAD Recent Works & Projects Portfolio',
           author: {
             '@type': 'Person',
             name: 'SM SAAD',
             url: 'https://smsaad.online',
           },
-          description: 'An experimental knowledge-management application focused on organizing notes, ideas and connected knowledge.',
-          applicationCategory: 'Productivity & Knowledge Management',
+          description: 'A portfolio showcase of video editing, VFX compositing, motion graphics, and web application projects.',
         }}
       />
       
@@ -41,13 +43,13 @@ export const Works: React.FC = () => {
       <section className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 md:pt-16">
         <div className="border border-north-black bg-white p-8 md:p-14 space-y-6">
           <span className="bg-north-lime text-north-black font-heading font-bold text-xs uppercase tracking-widest px-3.5 py-1.5 border border-north-black inline-block">
-            RECENT PROJECTS
+            RECENT WORKS & SHOWCASE
           </span>
           <h1 className="font-heading text-4xl sm:text-6xl font-bold uppercase tracking-tight max-w-4xl leading-tight">
-            Recent Projects
+            Recent Works & Projects
           </h1>
           <p className="text-north-gray font-body text-base sm:text-lg max-w-2xl">
-            A selection of projects I'm building and exploring across creativity and technology.
+            A selection of video editing, VFX compositing, and modern digital web applications. Watch directly inline or preview in theater mode.
           </p>
         </div>
       </section>
@@ -62,7 +64,7 @@ export const Works: React.FC = () => {
               onClick={() => setActiveCategory(cat)}
               className={`font-heading font-bold text-xs uppercase tracking-wider px-5 py-3 border border-north-black transition-all ${
                 activeCategory === cat
-                  ? 'bg-north-black text-north-lime'
+                  ? 'bg-north-black text-north-lime shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                   : 'bg-white text-north-black hover:bg-north-lime'
               }`}
             >
