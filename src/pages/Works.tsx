@@ -9,14 +9,17 @@ export const Works: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
 
-  const categories = ['All', 'Video Editing', 'VFX & Motion'];
+  const categories = ['All', 'Video Editing', 'Instagram Reels', 'VFX & Motion'];
 
   const filteredProjects = activeCategory === 'All'
     ? projectsData
-    : projectsData.filter((p) =>
-        p.category.toLowerCase().includes(activeCategory.toLowerCase()) ||
-        p.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase()))
-      );
+    : projectsData.filter((p) => {
+        if (activeCategory === 'Instagram Reels') return Boolean(p.instagramId) || p.category.includes('Instagram');
+        if (activeCategory === 'Video Editing') return Boolean(p.youtubeId) || p.category.includes('Video') || p.category.includes('Podcast');
+        if (activeCategory === 'VFX & Motion') return p.category.includes('VFX') || p.tags.includes('VFX Compositing') || p.tags.includes('Motion Graphics');
+        return p.category.toLowerCase().includes(activeCategory.toLowerCase()) ||
+               p.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase()));
+      });
 
   return (
     <div className="space-y-16 md:space-y-24 pb-12 bg-north-bg text-north-black">

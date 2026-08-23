@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, Eye, Play, ExternalLink, X, RotateCcw } from 'lucide-react';
+import { ArrowUpRight, Eye, Play, ExternalLink, X, RotateCcw, Instagram, Youtube } from 'lucide-react';
 import { ProjectItem } from '../data/siteData';
 
 interface ProjectCardProps {
@@ -9,22 +9,36 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) => {
   const [isPlayingInline, setIsPlayingInline] = useState(false);
-  const isVideo = Boolean(project.youtubeId);
-  const redirectUrl = project.url || project.videoUrl || (project.youtubeId ? `https://www.youtube.com/watch?v=${project.youtubeId}` : undefined);
+  const isYoutube = Boolean(project.youtubeId);
+  const isInstagram = Boolean(project.instagramId);
+  const isPlayable = isYoutube || isInstagram;
+  const redirectUrl = project.url || project.videoUrl || (project.youtubeId ? `https://www.youtube.com/watch?v=${project.youtubeId}` : (project.instagramId ? `https://www.instagram.com/reel/${project.instagramId}/` : undefined));
 
   return (
     <div className="border border-north-black bg-white group flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl relative">
       {/* Media / Thumbnail Container */}
       <div className="relative aspect-[16/10] overflow-hidden bg-neutral-900 border-b border-north-black">
-        {isVideo && isPlayingInline && project.youtubeId ? (
-          <div className="w-full h-full relative bg-black">
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${project.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
-              title={project.title}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+        {isPlayable && isPlayingInline ? (
+          <div className="w-full h-full relative bg-black flex items-center justify-center">
+            {isYoutube && project.youtubeId && (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${project.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                title={project.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            )}
+            {isInstagram && project.instagramId && (
+              <iframe
+                src={`https://www.instagram.com/reel/${project.instagramId}/embed/`}
+                title={project.title}
+                className="w-full h-full border-0 bg-white"
+                allow="encrypted-media"
+                scrolling="no"
+                allowFullScreen
+              />
+            )}
             {/* Inline player close button */}
             <button
               onClick={() => setIsPlayingInline(false)}
@@ -44,8 +58,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
               loading="lazy"
             />
 
-            {/* Video Play Badge Center Overlay (if video) */}
-            {isVideo && (
+            {/* Play Badge Center Overlay (if video or reel) */}
+            {isPlayable && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity duration-200">
                 <div className="w-14 h-14 rounded-full bg-north-black/85 text-north-lime border-2 border-north-black flex items-center justify-center shadow-lg transform transition-transform duration-300">
                   <Play className="w-6 h-6 fill-current ml-1" />
@@ -55,7 +69,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
 
             {/* Hover Action Overlay */}
             <div className="absolute inset-0 bg-north-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2.5 p-4">
-              {isVideo ? (
+              {isPlayable ? (
                 <>
                   <div className="flex items-center gap-2">
                     <button
@@ -84,12 +98,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
                       href={redirectUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-north-black text-white font-heading font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 border border-white/30 hover:border-north-lime hover:text-north-lime flex items-center space-x-1 transition-all"
-                      title="Open in YouTube (New Tab)"
+                      className="bg-north-black text-white font-heading font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 border border-white/30 hover:border-north-lime hover:text-north-lime flex items-center space-x-1.5 transition-all"
+                      title={`Open in ${isInstagram ? 'Instagram' : 'YouTube'} (New Tab)`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span>Watch on YouTube</span>
-                      <ExternalLink className="w-3 h-3 ml-1" />
+                      {isInstagram ? <Instagram className="w-3.5 h-3.5 text-pink-400" /> : <Youtube className="w-3.5 h-3.5 text-red-500" />}
+                      <span>{isInstagram ? 'Open on Instagram' : 'Watch on YouTube'}</span>
+                      <ExternalLink className="w-3 h-3 ml-0.5" />
                     </a>
                   )}
                 </>
@@ -111,11 +126,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
               {project.category}
             </span>
 
-            {/* Video Label indicator (top right) */}
-            {isVideo && (
+            {/* Media Label indicator (top right) */}
+            {isYoutube && (
               <span className="absolute top-3 right-3 bg-north-black text-white font-heading font-bold text-[10px] uppercase px-2 py-0.5 border border-north-black flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
-                <span>VIDEO</span>
+                <span>YOUTUBE</span>
+              </span>
+            )}
+            {isInstagram && (
+              <span className="absolute top-3 right-3 bg-north-black text-white font-heading font-bold text-[10px] uppercase px-2 py-0.5 border border-north-black flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-500 inline-block animate-pulse"></span>
+                <span>REEL</span>
               </span>
             )}
           </>
@@ -132,7 +153,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
           <h3
             onClick={() => {
               if (onPreview) onPreview(project);
-              else if (isVideo) setIsPlayingInline(true);
+              else if (isPlayable) setIsPlayingInline(true);
             }}
             className="font-heading text-lg md:text-xl font-bold uppercase text-north-black group-hover:text-north-lime-dark transition-colors line-clamp-2 cursor-pointer"
           >
@@ -159,26 +180,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPreview }) 
                 href={redirectUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Open on YouTube (New Tab)"
+                title={`Open on ${isInstagram ? 'Instagram' : 'YouTube'} (New Tab)`}
                 className="w-8 h-8 rounded-none border border-north-black flex items-center justify-center bg-white text-north-black hover:bg-north-lime transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                {isInstagram ? <Instagram className="w-3.5 h-3.5" /> : (isYoutube ? <Youtube className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />)}
               </a>
             )}
             <button
               onClick={() => {
-                if (isVideo) {
+                if (isPlayable) {
                   if (onPreview) onPreview(project);
                   else setIsPlayingInline(true);
                 } else if (onPreview) {
                   onPreview(project);
                 }
               }}
-              title={isVideo ? "Play video" : "View project"}
+              title={isPlayable ? "Play media" : "View project"}
               className="w-8 h-8 rounded-none border border-north-black flex items-center justify-center bg-north-black text-north-lime group-hover:bg-north-lime group-hover:text-north-black transition-colors"
             >
-              {isVideo ? <Play className="w-3.5 h-3.5 fill-current" /> : <ArrowUpRight className="w-4 h-4" />}
+              {isPlayable ? <Play className="w-3.5 h-3.5 fill-current" /> : <ArrowUpRight className="w-4 h-4" />}
             </button>
           </div>
         </div>

@@ -24,8 +24,10 @@ export interface ProjectItem {
   tags: string[];
   url?: string;
   youtubeId?: string;
+  instagramId?: string;
   videoUrl?: string;
-  type?: 'video' | 'web' | 'experimental';
+  platform?: 'youtube' | 'instagram' | 'web';
+  type?: 'video' | 'reel' | 'web' | 'experimental';
 }
 
 export interface ToolItem {
@@ -429,7 +431,30 @@ export const projectsData: ProjectItem[] = [
       "High-Retention Editing"
     ],
     tags: ["Video Editing", "AI & Automation", "Motion Graphics", "YouTube", "Premiere Pro"],
-    type: "video"
+    type: "video",
+    platform: "youtube"
+  },
+  {
+    id: "gut-health-podcast-video",
+    title: "Gut Health & Wellbeing: Ayurvedic Perspective",
+    category: "Podcast & Long-Form",
+    client: "Plugin with Pramod / YouTube",
+    timeline: "2026",
+    image: "https://img.youtube.com/vi/VAhPfPhGVbc/hqdefault.jpg",
+    youtubeId: "VAhPfPhGVbc",
+    url: "https://youtu.be/VAhPfPhGVbc?si=vPShKIB51xbZuP9j",
+    videoUrl: "https://www.youtube.com/watch?v=VAhPfPhGVbc",
+    description: "In-depth podcast post-production featuring multi-camera switching, studio audio enhancement, dynamic visual callouts, and educational pacing.",
+    focus: [
+      "Multi-Camera Video Switching",
+      "Studio Audio Mastering & Cleanup",
+      "Dynamic Lower-Thirds & Overlays",
+      "Narrative Pacing & Chaptering",
+      "Color Balancing & Finishing"
+    ],
+    tags: ["Podcast Editing", "YouTube", "Multi-Cam", "Audio Mastering", "Premiere Pro"],
+    type: "video",
+    platform: "youtube"
   },
   {
     id: "healing-journey-story-video",
@@ -450,7 +475,8 @@ export const projectsData: ProjectItem[] = [
       "Narrative Arc Structuring"
     ],
     tags: ["Video Editing", "Storytelling", "Color Grading", "DaVinci Resolve", "Sound Design"],
-    type: "video"
+    type: "video",
+    platform: "youtube"
   },
   {
     id: "creative-vfx-motion-showcase",
@@ -471,7 +497,96 @@ export const projectsData: ProjectItem[] = [
       "Audio-Visual Synchronization"
     ],
     tags: ["VFX Compositing", "Motion Graphics", "After Effects", "Transitions", "Video Editing"],
-    type: "video"
+    type: "video",
+    platform: "youtube"
+  },
+  {
+    id: "instagram-reel-dynamic-motion",
+    title: "Dynamic Short-Form Motion & Speed Edit",
+    category: "Instagram Reels",
+    client: "Social Media Content",
+    timeline: "2026",
+    image: "/assets/images/works1.jpg",
+    instagramId: "DV5RevmDxUj",
+    url: "https://www.instagram.com/reel/DV5RevmDxUj/?utm_source=ig_web_button_share_sheet",
+    videoUrl: "https://www.instagram.com/reel/DV5RevmDxUj/",
+    description: "High-energy short-form edit built for mobile retention, featuring snappy speed ramping, rhythmic sound effects, kinetic typography, and tight visual cuts.",
+    focus: [
+      "High-Retention Editing",
+      "Sound Design & Foley",
+      "Kinetic Typography",
+      "Speed Ramps & Whip Transitions",
+      "Hook Optimization"
+    ],
+    tags: ["Instagram Reel", "Short-Form", "Motion Graphics", "Sound Design", "Vertical Video"],
+    type: "reel",
+    platform: "instagram"
+  },
+  {
+    id: "instagram-reel-viral-motion",
+    title: "Viral Motion Design & Visual Rhythm Reel",
+    category: "Instagram Reels",
+    client: "Creator Content",
+    timeline: "2026",
+    image: "/assets/images/works2.jpg",
+    instagramId: "DWgpdMXj8O4",
+    url: "https://www.instagram.com/reel/DWgpdMXj8O4/?utm_source=ig_web_button_share_sheet",
+    videoUrl: "https://www.instagram.com/reel/DWgpdMXj8O4/",
+    description: "Engaging vertical reel featuring custom animated graphic overlays, smooth match cuts, dynamic zoom transitions, and audio-visual synchronization.",
+    focus: [
+      "Visual Rhythm & Pacing",
+      "Seamless Match Cuts",
+      "Kinetic Title Overlays",
+      "Mobile Color Finishing",
+      "Audio Sync & Beats"
+    ],
+    tags: ["Instagram Reel", "Motion Design", "Visual Effects", "Shorts", "After Effects"],
+    type: "reel",
+    platform: "instagram"
+  },
+  {
+    id: "instagram-reel-vfx-kinetic",
+    title: "Creative Visual Effects & Kinetic Reel",
+    category: "Instagram Reels",
+    client: "Social Media Brand",
+    timeline: "2026",
+    image: "/assets/images/works3.jpg",
+    instagramId: "DcDqcztRpbL",
+    url: "https://www.instagram.com/reel/DcDqcztRpbL/?igsi=MW55MW5lM3ZsYXpidw==",
+    videoUrl: "https://www.instagram.com/reel/DcDqcztRpbL/",
+    description: "Creative short-form post-production featuring 2D visual enhancements, seamless motion transitions, impact sound effects, and color grading for mobile platforms.",
+    focus: [
+      "Kinetic VFX Overlays",
+      "Transition Design",
+      "Mobile Color Grading",
+      "Audio Stems & Riser Hits",
+      "Audience Engagement"
+    ],
+    tags: ["Instagram Reel", "VFX", "Creative Editing", "Mobile Video", "Premiere Pro"],
+    type: "reel",
+    platform: "instagram"
+  },
+  {
+    id: "instagram-reel-storytelling-impact",
+    title: "High-Impact Storytelling & Visual Reel",
+    category: "Instagram Reels",
+    client: "Creator Hub",
+    timeline: "2026",
+    image: "/assets/images/works4.jpg",
+    instagramId: "DZm-5wXRS6P",
+    url: "https://www.instagram.com/reel/DZm-5wXRS6P/?igsi=bTc1MnRtcnAwbHg=",
+    videoUrl: "https://www.instagram.com/reel/DZm-5wXRS6P/",
+    description: "Punchy visual storytelling reel structured for viral engagement, featuring fast-paced cuts, layered sound design, animated subtitles, and dynamic pacing.",
+    focus: [
+      "Visual Storytelling",
+      "Fast-Paced Cuts",
+      "Animated Subtitles",
+      "Layered Audio Hits",
+      "Engagement Retention"
+    ],
+    tags: ["Instagram Reel", "Storytelling", "Sound Design", "Short-Form", "Vertical Edit"],
+    type: "reel",
+    platform: "instagram"
   }
 ];
 

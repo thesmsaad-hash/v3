@@ -63,10 +63,13 @@ export const Home: React.FC = () => {
   // Filter projects by category
   const filteredProjects = useMemo(() => {
     if (projectCategory === 'All') return projectsData;
-    return projectsData.filter((p) =>
-      p.category.toLowerCase().includes(projectCategory.toLowerCase()) ||
-      p.tags.some((t) => t.toLowerCase().includes(projectCategory.toLowerCase()))
-    );
+    return projectsData.filter((p) => {
+      if (projectCategory === 'Instagram Reels') return Boolean(p.instagramId) || p.category.includes('Instagram');
+      if (projectCategory === 'Video Editing') return Boolean(p.youtubeId) || p.category.includes('Video') || p.category.includes('Podcast');
+      if (projectCategory === 'VFX & Motion') return p.category.includes('VFX') || p.tags.includes('VFX Compositing') || p.tags.includes('Motion Graphics');
+      return p.category.toLowerCase().includes(projectCategory.toLowerCase()) ||
+             p.tags.some((t) => t.toLowerCase().includes(projectCategory.toLowerCase()));
+    });
   }, [projectCategory]);
 
   // Filter tools by category
@@ -431,7 +434,7 @@ export const Home: React.FC = () => {
 
             {/* Category Filter Tabs */}
             <div className="flex items-center gap-2 flex-wrap">
-              {['All', 'Video Editing', 'VFX & Motion'].map((cat) => (
+              {['All', 'Video Editing', 'Instagram Reels', 'VFX & Motion'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setProjectCategory(cat)}
