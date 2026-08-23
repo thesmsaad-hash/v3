@@ -21,8 +21,8 @@ export const Faqs: React.FC = () => {
     <div className="space-y-20 md:space-y-32 pb-10">
       <SEO
         title="Frequently Asked Questions (FAQ) — SM SAAD"
-        description="Frequently asked questions regarding Video Editing, VFX Compositing, React Web Development, Synapto app, and project collaborations with SM SAAD."
-        keywords="SM SAAD FAQ, video editing questions, hiring a vfx artist FAQ, web development process FAQ, Synapto questions"
+        description="Frequently asked questions regarding Video Editing, VFX Compositing, Motion Graphics, Web Development, turnaround times, revisions, and project collaborations with SM SAAD."
+        keywords="SM SAAD FAQ, video editing questions, hiring a vfx artist FAQ, web development process FAQ, turnaround times, video post production FAQ"
         canonical="https://smsaad.online/faqs"
         breadcrumbs={[{ name: 'FAQs', url: '/faqs' }]}
         schema={faqSchema}

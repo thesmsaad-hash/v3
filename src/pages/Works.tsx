@@ -87,13 +87,16 @@ export const Works: React.FC = () => {
 
       {/* FAQ SECTION */}
       <section className="max-w-[1400px] mx-auto px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto text-center mb-12">
-          <span className="text-north-lime-dark font-heading font-bold text-xs uppercase tracking-widest block mb-2">
-            PROJECT INQUIRIES
+        <div className="max-w-3xl mx-auto text-center mb-12 space-y-3">
+          <span className="bg-north-lime text-north-black font-heading font-bold text-xs uppercase tracking-widest px-3 py-1 border border-north-black inline-block">
+            PROJECT INQUIRIES & COLLABORATIONS
           </span>
           <h2 className="font-heading text-3xl sm:text-5xl font-bold uppercase">
             Frequently Asked Questions
           </h2>
+          <p className="text-north-gray text-sm sm:text-base max-w-xl mx-auto font-body">
+            Common questions about project turnaround times, raw footage handover, revisions, software stack, and collaboration workflows.
+          </p>
         </div>
 
         <FaqAccordion items={faqsData} className="max-w-4xl mx-auto" />

@@ -541,32 +541,38 @@ export const blogsData: BlogPost[] = [
 export const faqsData: FaqItem[] = [
   {
     id: "faq-1",
-    question: "What services do you offer?",
-    answer: "I offer Video Editing, VFX & Compositing, Motion Graphics, Web Development (React, Next.js, WordPress), AI & Creative Workflows, Social Media Content, and Thumbnail Design.",
+    question: "What creative and technical services do you offer?",
+    answer: "I offer end-to-end post-production and digital solutions including Long-Form & Short-Form Video Editing, VFX Compositing, Green Screen Keying, Motion Graphics, Color Grading, Sound Design, Modern Web Development (React, Next.js, WordPress), and AI-assisted creative workflows.",
     category: "Services"
   },
   {
     id: "faq-2",
-    question: "What software and technologies do you use?",
-    answer: "For post-production: Adobe Premiere Pro, After Effects, Photoshop, DaVinci Resolve, Blender. For web development: HTML, CSS, JavaScript, React, Next.js, WordPress, PHP. For AI & automation: Ollama, n8n, GitHub, and AI creative tools.",
-    category: "Stack"
+    question: "What is your typical turnaround time for video editing and VFX projects?",
+    answer: "Turnaround depends on project scope: Short-form content (Reels, TikToks, Shorts) is usually delivered within 24–48 hours. Standard YouTube long-form videos take 2–4 business days. High-end VFX compositing, 3D integration, and custom motion graphics packages are scheduled according to milestone timelines.",
+    category: "Timeline"
   },
   {
     id: "faq-3",
-    question: "What is Synapto?",
-    answer: "Synapto is an experimental knowledge-management application I am developing to explore how notes, ideas, and connected information can be organized through a clean, modern digital experience.",
-    category: "Projects"
-  },
-  {
-    id: "faq-4",
-    question: "How do you combine video editing and web development?",
-    answer: "I treat post-production and web development as two sides of the same creative coin—visual storytelling through video and interactive storytelling through digital interfaces.",
+    question: "How do the project review and revision rounds work?",
+    answer: "Every project includes structured milestone reviews and up to 2–3 rounds of revisions. Drafts are shared via review links with timecode feedback so revisions can be implemented accurately and quickly before final master delivery.",
     category: "Workflow"
   },
   {
+    id: "faq-4",
+    question: "How do I share raw footage and assets with you?",
+    answer: "You can securely share your raw media, audio stems, and brand assets through Google Drive, Dropbox, WeTransfer, OneDrive, or Frame.io. I handle high-bitrate 4K RAW camera files, multi-cam setups, and log profiles smoothly.",
+    category: "Delivery"
+  },
+  {
     id: "faq-5",
-    question: "How can I start a project with you?",
-    answer: "Simply navigate to the Contact page, fill out the project inquiry form with your requirements (video, VFX, web, or AI project), or send an inquiry directly to smsaad.online.",
+    question: "What software and tech stack do you use?",
+    answer: "For video & post-production: Adobe Premiere Pro, After Effects, DaVinci Resolve Studio, Photoshop, and Blender. For web & interfaces: React, Next.js, TypeScript, Tailwind CSS, WordPress, and PHP. For AI & automation: Ollama local models, n8n workflows, and modern generative AI toolkits.",
+    category: "Tech Stack"
+  },
+  {
+    id: "faq-6",
+    question: "How do I start a project inquiry and get a quote?",
+    answer: "Simply head over to the Contact page and submit the project inquiry form with your project details, raw footage length, deadline, and reference links—or email directly to hello@smsaad.online. You'll receive a detailed proposal and quote within 24 hours.",
     category: "Getting Started"
   }
 ];
