@@ -34,6 +34,7 @@ import { SEO } from '../components/SEO';
 import { getStoredBlogPosts, ExtendedBlogPost } from '../utils/blogStorage';
 import { speechEngine } from '../utils/speechEngine';
 import { addNewsletterSubscriber } from '../utils/subscriberStorage';
+import { generatePostSchemaJsonLd } from '../utils/aiBlogWorkflow';
 
 interface TableOfContentItem {
   id: string;
@@ -213,7 +214,7 @@ export const BlogPostDetail: React.FC = () => {
   // Word count & read time
   const wordCount = (post.content || post.excerpt).split(/\s+/).length;
 
-  // Custom Formatted Content Renderer optimized for Vertical Easy Reading
+  // Custom Formatted Content Renderer optimized for Vertical Easy Reading & AI Citations
   const renderFormattedContent = (content: string) => {
     const lines = content.split('\n');
     const elements: React.ReactNode[] = [];
@@ -221,9 +222,65 @@ export const BlogPostDetail: React.FC = () => {
     let codeBuffer: string[] = [];
     let codeLanguage = '';
     let blockIndex = 0;
+    let inTable = false;
+    let tableRows: string[][] = [];
+    let isKeyTakeawaysSection = false;
 
-    lines.forEach((line, idx) => {
+    const flushTable = (keyIdx: number) => {
+      if (tableRows.length > 0) {
+        const header = tableRows[0];
+        const body = tableRows.slice(1);
+        elements.push(
+          <div key={`table-${keyIdx}`} className="my-8 overflow-x-auto border-2 border-north-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm font-body">
+              <thead>
+                <tr className="bg-north-black text-white font-heading font-extrabold uppercase tracking-wider">
+                  {header.map((cell, cIdx) => (
+                    <th key={cIdx} className="p-3.5 sm:p-4 border-r border-neutral-800 last:border-r-0">
+                      {formatInlineText(cell.trim())}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-north-black/20">
+                {body.map((row, rIdx) => (
+                  <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-north-bg/60'}>
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="p-3.5 sm:p-4 border-r border-north-black/10 last:border-r-0 font-medium">
+                        {formatInlineText(cell.trim())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        tableRows = [];
+        inTable = false;
+      }
+    };
+
+    for (let idx = 0; idx < lines.length; idx++) {
+      const line = lines[idx];
       const trimmed = line.trim();
+
+      // Check for Markdown Table Rows (| col | col |)
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        // Skip markdown separator line (| --- | --- |)
+        if (/^\|[\s\-:]+\|/.test(trimmed) && trimmed.includes('-')) {
+          continue;
+        }
+        const cells = trimmed
+          .slice(1, -1)
+          .split('|')
+          .map((c) => c.trim());
+        tableRows.push(cells);
+        inTable = true;
+        continue;
+      } else if (inTable) {
+        flushTable(idx);
+      }
 
       // Handle Markdown Code Blocks (```code```)
       if (trimmed.startsWith('```')) {
@@ -263,16 +320,92 @@ export const BlogPostDetail: React.FC = () => {
           );
           codeBuffer = [];
         }
-        return;
+        continue;
       }
 
       if (inCodeBlock) {
         codeBuffer.push(line);
-        return;
+        continue;
       }
 
       if (!trimmed) {
-        return;
+        continue;
+      }
+
+      // AI Summarization Deep-Links Block
+      if (trimmed.toLowerCase().includes('summarize this article with') || trimmed.toLowerCase().includes('summarize this blog post with')) {
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : 'https://smsaad.online/blogs';
+        elements.push(
+          <div
+            key={idx}
+            className="my-6 p-4 sm:p-5 border-2 border-north-black bg-north-bg shadow-[4px_4px_0px_0px_rgba(200,255,0,1)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+          >
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-north-lime-dark" />
+              <span className="font-heading font-extrabold text-xs uppercase text-north-black">
+                Summarize with AI:
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={`https://chatgpt.com/?q=Summarize+the+following+article:+${encodeURIComponent(pageUrl)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white border border-north-black px-2.5 py-1 text-xs font-heading font-bold uppercase hover:bg-north-lime hover:text-black transition-colors"
+              >
+                ChatGPT
+              </a>
+              <a
+                href={`https://www.perplexity.ai/search?q=Summarize+the+following+article:+${encodeURIComponent(pageUrl)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white border border-north-black px-2.5 py-1 text-xs font-heading font-bold uppercase hover:bg-north-lime hover:text-black transition-colors"
+              >
+                Perplexity
+              </a>
+              <a
+                href="https://claude.ai"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white border border-north-black px-2.5 py-1 text-xs font-heading font-bold uppercase hover:bg-north-lime hover:text-black transition-colors"
+              >
+                Claude
+              </a>
+              <a
+                href="https://x.com/i/grok"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white border border-north-black px-2.5 py-1 text-xs font-heading font-bold uppercase hover:bg-north-lime hover:text-black transition-colors"
+              >
+                Grok
+              </a>
+            </div>
+          </div>
+        );
+        continue;
+      }
+
+      // Screenshot / Visual Suggestion Placeholder
+      if (trimmed.startsWith('[Insert image:') || trimmed.startsWith('[Image:')) {
+        const parts = trimmed.replace(/^\[(Insert image|Image):\s*/, '').replace(/\]$/, '').split('|');
+        const desc = parts[0]?.trim() || 'Visual illustration';
+        const alt = parts[1]?.replace(/Alt text:\s*"/, '').replace(/"$/, '').trim() || desc;
+        elements.push(
+          <div key={idx} className="my-8 p-5 border-2 border-dashed border-north-black bg-north-bg/60 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-heading font-extrabold uppercase text-north-gray">
+              <span className="flex items-center gap-1.5 text-north-black">
+                <Compass className="w-3.5 h-3.5 text-north-lime-dark" />
+                <span>Visual Diagram / Screenshot Placement</span>
+              </span>
+              <span className="bg-north-lime text-black px-2 py-0.5 border border-north-black font-mono text-[10px]">
+                ALT TEXT OPTIMIZED
+              </span>
+            </div>
+            <p className="font-heading font-bold text-sm text-north-black uppercase">{desc}</p>
+            <p className="text-xs text-north-gray font-mono italic">Alt: "{alt}"</p>
+          </div>
+        );
+        continue;
       }
 
       // H1 Header (# Title)
@@ -288,21 +421,38 @@ export const BlogPostDetail: React.FC = () => {
             {headingText}
           </h1>
         );
+        continue;
       }
+
       // H2 Header (## Section)
-      else if (trimmed.startsWith('## ')) {
+      if (trimmed.startsWith('## ')) {
         const headingText = trimmed.replace('## ', '');
         const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-        elements.push(
-          <div key={idx} id={slug} className="pt-8 pb-3 scroll-mt-28">
-            <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-extrabold uppercase text-north-black flex items-center gap-3 border-l-4 border-north-lime pl-4 leading-snug">
-              <span>{headingText}</span>
-            </h2>
-          </div>
-        );
+        isKeyTakeawaysSection = headingText.toLowerCase().includes('key takeaway');
+
+        if (isKeyTakeawaysSection) {
+          elements.push(
+            <div key={idx} id={slug} className="mt-8 mb-4 pt-4 border-t-2 border-north-black/20">
+              <div className="inline-flex items-center gap-2 bg-north-lime text-black font-heading font-black text-xs uppercase px-3 py-1 border-2 border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>KEY TAKEAWAYS & EXECUTIVE SUMMARY</span>
+              </div>
+            </div>
+          );
+        } else {
+          elements.push(
+            <div key={idx} id={slug} className="pt-8 pb-3 scroll-mt-28">
+              <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-extrabold uppercase text-north-black flex items-center gap-3 border-l-4 border-north-lime pl-4 leading-snug">
+                <span>{headingText}</span>
+              </h2>
+            </div>
+          );
+        }
+        continue;
       }
+
       // H3 Header (### Subsection)
-      else if (trimmed.startsWith('### ')) {
+      if (trimmed.startsWith('### ')) {
         const headingText = trimmed.replace('### ', '');
         const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
         elements.push(
@@ -315,9 +465,11 @@ export const BlogPostDetail: React.FC = () => {
             <span>{headingText}</span>
           </h3>
         );
+        continue;
       }
+
       // Blockquote (> Quote)
-      else if (trimmed.startsWith('> ')) {
+      if (trimmed.startsWith('> ')) {
         const quoteText = trimmed.replace('> ', '').replace(/^"|"$/g, '');
         elements.push(
           <div
@@ -330,9 +482,11 @@ export const BlogPostDetail: React.FC = () => {
             </p>
           </div>
         );
+        continue;
       }
+
       // Numbered List Items (1. Item)
-      else if (/^\d+\.\s/.test(trimmed)) {
+      if (/^\d+\.\s/.test(trimmed)) {
         const numMatch = trimmed.match(/^(\d+)\.\s/);
         const itemNum = numMatch ? numMatch[1].padStart(2, '0') : '01';
         const itemText = trimmed.replace(/^\d+\.\s/, '');
@@ -346,21 +500,36 @@ export const BlogPostDetail: React.FC = () => {
             </div>
           </div>
         );
+        continue;
       }
+
       // Bulleted List Items (- Item or * Item)
-      else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         const itemText = trimmed.replace(/^[-*]\s/, '');
-        elements.push(
-          <div key={idx} className="flex items-start space-x-3 my-2.5 pl-1 sm:pl-3">
-            <CheckCircle2 className="w-4 h-4 text-north-lime-dark shrink-0 mt-1" />
-            <div className="font-body text-north-black text-sm sm:text-base leading-relaxed">
-              {formatInlineText(itemText)}
+        if (isKeyTakeawaysSection) {
+          elements.push(
+            <div key={idx} className="flex items-start space-x-3 my-3 bg-north-lime/15 border-2 border-north-black p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <CheckSquare className="w-5 h-5 text-north-black shrink-0 mt-0.5" />
+              <div className="font-body text-north-black text-sm sm:text-base font-semibold leading-relaxed">
+                {formatInlineText(itemText)}
+              </div>
             </div>
-          </div>
-        );
+          );
+        } else {
+          elements.push(
+            <div key={idx} className="flex items-start space-x-3 my-2.5 pl-1 sm:pl-3">
+              <CheckCircle2 className="w-4 h-4 text-north-lime-dark shrink-0 mt-1" />
+              <div className="font-body text-north-black text-sm sm:text-base leading-relaxed">
+                {formatInlineText(itemText)}
+              </div>
+            </div>
+          );
+        }
+        continue;
       }
+
       // Horizontal Rule (---)
-      else if (trimmed === '---') {
+      if (trimmed === '---') {
         elements.push(
           <div key={idx} className="my-10 flex items-center justify-center gap-3">
             <div className="flex-1 border-t-2 border-north-black/20"></div>
@@ -368,26 +537,43 @@ export const BlogPostDetail: React.FC = () => {
             <div className="flex-1 border-t-2 border-north-black/20"></div>
           </div>
         );
+        continue;
       }
-      // Regular Paragraph with high readability
-      else {
+
+      // Disclaimer / Editorial note check
+      if (trimmed.startsWith('*Disclaimer:') || trimmed.startsWith('Disclaimer:')) {
         elements.push(
-          <p
-            key={idx}
-            className="font-body text-north-black text-base sm:text-lg leading-[1.8] tracking-normal my-5"
-          >
-            {formatInlineText(trimmed)}
-          </p>
+          <div key={idx} className="my-6 p-4 border border-north-black bg-neutral-100 text-xs font-body text-north-gray italic leading-relaxed">
+            {trimmed}
+          </div>
         );
+        continue;
       }
-    });
+
+      // Regular Paragraph with high readability
+      elements.push(
+        <p
+          key={idx}
+          className="font-body text-north-black text-base sm:text-lg leading-[1.8] tracking-normal my-5"
+        >
+          {formatInlineText(trimmed)}
+        </p>
+      );
+    }
+
+    if (inTable) {
+      flushTable(lines.length);
+    }
 
     return elements;
   };
 
-  // Helper to format bold **text** in lines
+  // Helper to format bold **text** and internal links in lines
   const formatInlineText = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*)/g);
+    // Handle Internal link placeholders like [Internal link: "anchor text" → target]
+    let processed = text.replace(/\[Internal link:\s*"([^"]+)"\s*→\s*([^\]]+)\]/g, '[$1](/blogs)');
+
+    const parts = processed.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
@@ -396,28 +582,31 @@ export const BlogPostDetail: React.FC = () => {
           </strong>
         );
       }
+      if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+        const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
+        if (linkMatch) {
+          const anchor = linkMatch[1];
+          const href = linkMatch[2];
+          return (
+            <Link
+              key={i}
+              to={href.startsWith('http') ? href : href}
+              className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
+            >
+              {anchor}
+            </Link>
+          );
+        }
+      }
       return part;
     });
   };
 
-  const blogSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: post.title,
-    description: post.excerpt,
-    author: {
-      '@type': 'Person',
-      name: post.author || 'SM SAAD',
-      url: 'https://smsaad.online'
-    },
-    publisher: {
-      '@type': 'Person',
-      name: 'SM SAAD',
-      url: 'https://smsaad.online'
-    },
-    datePublished: post.date,
-    image: post.image?.startsWith('http') ? post.image : `https://smsaad.online${post.image}`
-  };
+  // Dynamic JSON-LD Article + FAQ Schema
+  const dynamicSchemas = useMemo(() => {
+    if (!post) return undefined;
+    return generatePostSchemaJsonLd(post).combinedSchemas;
+  }, [post]);
 
   // Theme styling for article container
   const themeBgClass =
@@ -438,7 +627,7 @@ export const BlogPostDetail: React.FC = () => {
         canonical={`https://smsaad.online/blogs/${post.id}`}
         ogImage={post.image?.startsWith('http') ? post.image : `https://smsaad.online${post.image}`}
         ogType="article"
-        schema={blogSchema}
+        schema={dynamicSchemas}
       />
 
       {/* TOP SCROLL PROGRESS BAR */}

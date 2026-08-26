@@ -38,6 +38,15 @@ import {
   getStoredResendKey,
   saveStoredResendKey
 } from '../utils/emailBroadcaster';
+import {
+  generateContentBrief,
+  generateFullRankBlogPost,
+  auditBlogPostQuality,
+  generatePostSchemaJsonLd,
+  INJECTABLE_SNIPPETS,
+  ContentBrief,
+  BlogAuditReport
+} from '../utils/aiBlogWorkflow';
 import { SEO } from '../components/SEO';
 import { AdminAuthGuard } from '../components/AdminAuthGuard';
 
@@ -53,6 +62,22 @@ export const AdminDashboard: React.FC = () => {
   const [blogActiveTab, setBlogActiveTab] = useState<'write' | 'split' | 'preview'>('split');
   const [currentPost, setCurrentPost] = useState<Partial<ExtendedBlogPost>>({});
   const [deleteBlogConfirmId, setDeleteBlogConfirmId] = useState<string | null>(null);
+
+  // AI STRATEGY & BLOG GENERATOR STATES
+  const [isAiGeneratorOpen, setIsAiGeneratorOpen] = useState(false);
+  const [aiKeyword, setAiKeyword] = useState('');
+  const [aiCategory, setAiCategory] = useState('Video Editing');
+  const [aiWordCount, setAiWordCount] = useState(1500);
+  const [aiBrief, setAiBrief] = useState<ContentBrief | null>(null);
+  const [aiGeneratedPost, setAiGeneratedPost] = useState<{ title: string; metaDescription: string; markdownContent: string } | null>(null);
+  const [aiActiveStage, setAiActiveStage] = useState<'input' | 'brief' | 'post'>('input');
+  const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
+  const [isGeneratingPost, setIsGeneratingPost] = useState(false);
+
+  // 10-STEP AUDIT & SCHEMA STATES
+  const [showAuditPanel, setShowAuditPanel] = useState(false);
+  const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
+  const [copiedSchema, setCopiedSchema] = useState(false);
 
   // ASSETS STATES
   const [assets, setAssets] = useState<DigitalAsset[]>([]);
@@ -280,6 +305,104 @@ Write your article introduction here explaining key concepts, goals, and visual 
       content: (currentPost.content || '') + blockText
     });
     showNotify(`Added ${blockType.toUpperCase()} Section Block!`);
+  };
+
+  // ----------------------------------------------------
+  // AI STRATEGY & BLOG GENERATOR HANDLERS
+  // ----------------------------------------------------
+  const handleOpenAiGenerator = () => {
+    setIsAiGeneratorOpen(true);
+    setAiActiveStage('input');
+  };
+
+  const handleGenerateAIBrief = () => {
+    if (!aiKeyword.trim()) {
+      alert('Please enter a target keyword or blog topic.');
+      return;
+    }
+    setIsGeneratingBrief(true);
+    setTimeout(() => {
+      const brief = generateContentBrief(aiKeyword, aiCategory);
+      setAiBrief(brief);
+      setAiActiveStage('brief');
+      setIsGeneratingBrief(false);
+      showNotify(`AI Content Brief generated for "${aiKeyword}"!`);
+    }, 350);
+  };
+
+  const handleGenerateAIPost = () => {
+    if (!aiBrief) return;
+    setIsGeneratingPost(true);
+    setTimeout(() => {
+      const generated = generateFullRankBlogPost(aiBrief, {
+        keyword: aiKeyword,
+        category: aiCategory,
+        desiredWordCount: aiWordCount,
+        authorName: 'SM SAAD',
+        authorTitle: 'Video Editor, VFX Compositor & Web Developer'
+      });
+      setAiGeneratedPost(generated);
+      setAiActiveStage('post');
+      setIsGeneratingPost(false);
+      showNotify(`Rank-Ready Article generated for "${aiKeyword}"!`);
+    }, 450);
+  };
+
+  const handleLoadAIPostIntoEditor = () => {
+    if (!aiGeneratedPost) return;
+    setCurrentPost({
+      id: Date.now().toString(),
+      title: aiGeneratedPost.title,
+      category: aiCategory || 'Video Editing',
+      excerpt: aiGeneratedPost.metaDescription,
+      content: aiGeneratedPost.markdownContent,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      readTime: `${Math.max(4, Math.round(aiWordCount / 250))} min read`,
+      image: '/assets/images/works1.jpg',
+      author: 'SM SAAD',
+      status: 'published'
+    });
+    setIsAiGeneratorOpen(false);
+    setBlogActiveTab('split');
+    setIsBlogEditorOpen(true);
+    setShowAuditPanel(true);
+    showNotify('AI Generated Article loaded into Editor Studio!');
+  };
+
+  // Real-time 10-Step Audit Report
+  const auditReport = useMemo<BlogAuditReport>(() => {
+    return auditBlogPostQuality(currentPost.content || '', currentPost.title || '');
+  }, [currentPost.content, currentPost.title]);
+
+  const handleInjectSnippet = (snippetKey: keyof typeof INJECTABLE_SNIPPETS) => {
+    const snippet = INJECTABLE_SNIPPETS[snippetKey];
+    if (!snippet) return;
+    setCurrentPost((prev) => ({
+      ...prev,
+      content: (prev.content || '') + snippet
+    }));
+    showNotify(`Injected ${snippetKey} snippet!`);
+  };
+
+  const handleCopySchemaJson = () => {
+    if (!currentPost.title) {
+      showNotify('Please enter an article title first.');
+      return;
+    }
+    const schemaObj = generatePostSchemaJsonLd({
+      id: currentPost.id || 'article',
+      title: currentPost.title || 'Article Title',
+      excerpt: currentPost.excerpt || '',
+      content: currentPost.content || '',
+      author: currentPost.author || 'SM SAAD',
+      date: currentPost.date || new Date().toISOString().slice(0, 10),
+      image: currentPost.image || '/assets/images/works1.jpg',
+      category: currentPost.category || 'Video Editing'
+    });
+    navigator.clipboard.writeText(schemaObj.jsonString);
+    setCopiedSchema(true);
+    setTimeout(() => setCopiedSchema(false), 2500);
+    showNotify('JSON-LD Schema copied to clipboard!');
   };
 
   // ----------------------------------------------------
@@ -595,7 +718,15 @@ Write your article introduction here explaining key concepts, goals, and visual 
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleOpenAiGenerator}
+                  className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-black text-xs font-heading font-extrabold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(200,255,0,1)] border border-north-black"
+                >
+                  <Sparkles className="w-4 h-4 mr-1.5 text-north-lime" />
+                  <span>AI SEO Strategist & Writer</span>
+                </button>
+
                 <button
                   onClick={handleCreateNewBlog}
                   className="btn-north bg-north-lime text-north-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
@@ -606,7 +737,7 @@ Write your article introduction here explaining key concepts, goals, and visual 
 
                 <button
                   onClick={handleCreateNewAsset}
-                  className="btn-north bg-north-black text-white hover:bg-north-lime hover:text-black text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                  className="btn-north bg-white text-north-black hover:bg-north-lime hover:text-black text-xs font-heading font-bold uppercase py-2.5 px-4 inline-flex items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                 >
                   <FolderPlus className="w-4 h-4 mr-1.5" />
                   <span>Upload Asset</span>
@@ -1480,6 +1611,160 @@ Write your article introduction here explaining key concepts, goals, and visual 
               {/* MAIN STUDIO FORM */}
               <form onSubmit={handleSaveBlog} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-white">
                 
+                {/* AI-CITATION & SEO REAL-TIME SCORECARD BAR */}
+                <div className="bg-north-black text-white p-4 border-2 border-north-black flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(200,255,0,1)]">
+                  <div className="flex items-center space-x-4 flex-wrap gap-y-2">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-11 h-11 border-2 border-north-black flex items-center justify-center font-heading font-black text-sm ${
+                        auditReport.overallScore >= 80 ? 'bg-north-lime text-black shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : auditReport.overallScore >= 50 ? 'bg-amber-400 text-black' : 'bg-red-500 text-white'
+                      }`}>
+                        {auditReport.overallScore}%
+                      </div>
+                      <div>
+                        <span className="font-heading font-extrabold text-xs uppercase text-white flex items-center gap-2">
+                          <span>AI Citation & SEO Scorecard</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 border font-bold ${
+                            auditReport.overallScore >= 80 ? 'bg-green-900 text-green-200 border-green-400' : 'bg-amber-900 text-amber-200 border-amber-500'
+                          }`}>
+                            {auditReport.overallScore >= 80 ? 'RANK-READY #1' : 'NEEDS AUDIT'}
+                          </span>
+                        </span>
+                        <p className="text-[11px] text-gray-400 font-mono mt-0.5">
+                          {auditReport.stats.wordCount} words • {auditReport.stats.h2Count} H2s • {auditReport.stats.statCitationCount} cited stats • {auditReport.stats.internalLinkCount} internal links
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowAuditPanel(!showAuditPanel)}
+                      className={`btn-north text-xs uppercase px-3 py-1.5 border border-white inline-flex items-center gap-1.5 transition-all ${
+                        showAuditPanel ? 'bg-north-lime text-black font-extrabold shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : 'bg-neutral-800 text-white hover:bg-white hover:text-black'
+                      }`}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{showAuditPanel ? 'Hide 10-Step Audit' : 'Review 10-Step Checklist'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsSchemaModalOpen(true)}
+                      className="btn-north bg-white text-black hover:bg-north-lime text-xs font-heading font-extrabold uppercase px-3 py-1.5 border border-black inline-flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(200,255,0,1)]"
+                      title="View & copy Article + FAQ JSON-LD schema"
+                    >
+                      <Code className="w-3.5 h-3.5" />
+                      <span>JSON-LD Schema</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* EXPANDABLE 10-STEP CHECKLIST AUDIT DRAWER */}
+                {showAuditPanel && (
+                  <div className="bg-north-bg border-2 border-north-black p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-center justify-between border-b border-north-black pb-2">
+                      <div className="flex items-center space-x-2">
+                        <ShieldCheck className="w-4 h-4 text-north-lime-dark" />
+                        <h4 className="font-heading font-black text-xs uppercase text-north-black">
+                          10-Step Publishing & AI Citation Checklist
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-mono font-bold text-north-gray">
+                        {auditReport.criteria.filter((c) => c.passed).length} / 10 Criteria Passed
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {auditReport.criteria.map((crit) => (
+                        <div
+                          key={crit.id}
+                          className={`p-3 border-2 border-north-black transition-all ${
+                            crit.passed ? 'bg-white' : 'bg-amber-50/70 border-amber-600'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start space-x-2">
+                              {crit.passed ? (
+                                <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                              )}
+                              <div>
+                                <h5 className="font-heading font-extrabold text-xs uppercase text-north-black">
+                                  {crit.title}
+                                </h5>
+                                <p className="text-[11px] text-north-gray leading-tight mt-0.5">
+                                  {crit.description}
+                                </p>
+                                <p className={`text-[10px] font-mono mt-1 font-semibold ${
+                                  crit.passed ? 'text-green-700' : 'text-amber-800'
+                                }`}>
+                                  {crit.feedback}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="font-heading font-extrabold text-xs px-1.5 py-0.5 border border-north-black shrink-0 bg-north-bg">
+                              {crit.score}/10
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 1-CLICK QUICK INSERTERS BAR */}
+                    <div className="pt-3 border-t border-north-black/20 flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-[10px] font-heading font-extrabold uppercase text-north-black">
+                        1-Click Format Injectors:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('aiSummarization')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + AI Links
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('keyTakeaways')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + Key Takeaways
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('comparisonTable')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + Comparison Table
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('answerFirstH2')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + Answer-First H2
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('statCitation')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + Stat Citation
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInjectSnippet('authorDisclaimer')}
+                          className="bg-white hover:bg-north-lime text-black text-[10px] font-heading font-extrabold uppercase px-2.5 py-1 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          + E-E-A-T Disclaimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* ARTICLE METADATA FORM ROW */}
                 <div className="bg-north-bg p-4 sm:p-5 border border-north-black space-y-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                   <span className="font-heading font-bold text-xs uppercase text-north-lime-dark block">
@@ -2075,6 +2360,388 @@ Write your article introduction here explaining key concepts, goals, and visual 
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* AI SEO STRATEGIST & BLOG GENERATOR MODAL */}
+        {isAiGeneratorOpen && (
+          <div className="fixed inset-0 z-50 bg-north-black/90 flex items-center justify-center p-3 sm:p-6 overflow-y-auto backdrop-blur-md animate-fadeIn">
+            <div className="border-2 border-north-black bg-white w-full max-w-5xl max-h-[94vh] flex flex-col shadow-[20px_20px_0px_0px_rgba(200,255,0,1)]">
+              
+              {/* Modal Header */}
+              <div className="border-b-2 border-north-black p-5 bg-north-black text-white flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-north-lime text-black border-2 border-black flex items-center justify-center font-bold shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-north-lime text-black font-heading font-black text-[10px] uppercase px-2 py-0.5 border border-white">
+                        AI ENGINE 2026
+                      </span>
+                      <span className="text-xs font-heading font-bold uppercase text-gray-300">
+                        Search & AI Citation Optimization
+                      </span>
+                    </div>
+                    <h2 className="font-heading font-black text-lg sm:text-xl uppercase text-white mt-0.5">
+                      AI SEO Strategist & Full Blog Generator
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {/* Step Indicators */}
+                  <div className="hidden sm:flex items-center border border-neutral-700 bg-neutral-900 p-0.5 text-xs font-heading font-bold uppercase">
+                    <button
+                      onClick={() => setAiActiveStage('input')}
+                      className={`px-3 py-1 ${aiActiveStage === 'input' ? 'bg-north-lime text-black' : 'text-gray-400 hover:text-white'}`}
+                    >
+                      1. Keyword Input
+                    </button>
+                    <button
+                      onClick={() => aiBrief && setAiActiveStage('brief')}
+                      disabled={!aiBrief}
+                      className={`px-3 py-1 ${aiActiveStage === 'brief' ? 'bg-north-lime text-black' : 'text-gray-400 disabled:opacity-40'}`}
+                    >
+                      2. Strategy Brief
+                    </button>
+                    <button
+                      onClick={() => aiGeneratedPost && setAiActiveStage('post')}
+                      disabled={!aiGeneratedPost}
+                      className={`px-3 py-1 ${aiActiveStage === 'post' ? 'bg-north-lime text-black' : 'text-gray-400 disabled:opacity-40'}`}
+                    >
+                      3. Full Article
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setIsAiGeneratorOpen(false)}
+                    className="p-2 border border-white bg-neutral-900 text-white hover:bg-north-lime hover:text-black transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6 bg-north-bg space-y-6">
+                
+                {/* STAGE 1: KEYWORD & PARAMETER INPUT */}
+                {aiActiveStage === 'input' && (
+                  <div className="max-w-2xl mx-auto space-y-6 py-4">
+                    <div className="border-2 border-north-black bg-white p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                      <div className="space-y-2">
+                        <span className="bg-north-lime text-black font-heading font-black text-xs uppercase px-2.5 py-1 border border-north-black inline-block">
+                          STEP 1: TARGET KEYWORD & INTENT
+                        </span>
+                        <h3 className="font-heading font-black text-2xl uppercase text-north-black">
+                          Generate Strategic Blog Brief & Article
+                        </h3>
+                        <p className="text-xs text-north-gray leading-relaxed">
+                          Enter your target keyword (e.g., <code className="font-mono bg-north-bg px-1 py-0.5 border border-north-black">DaVinci Resolve vs Premiere Pro</code> or <code className="font-mono bg-north-bg px-1 py-0.5 border border-north-black">VFX Compositing Techniques</code>). The AI engine will create an end-to-end SEO strategy brief and a full rank-ready post.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="font-heading font-extrabold text-xs uppercase text-north-black block mb-1">
+                            Primary Keyword or Comparison Topic *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. DaVinci Resolve vs Premiere Pro or Video Editing Workflows"
+                            value={aiKeyword}
+                            onChange={(e) => setAiKeyword(e.target.value)}
+                            className="w-full p-3.5 bg-north-bg border-2 border-north-black text-sm font-heading font-bold text-north-black focus:outline-none focus:ring-2 focus:ring-north-lime"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-heading font-bold text-xs uppercase text-north-black block mb-1">
+                              Content Category
+                            </label>
+                            <select
+                              value={aiCategory}
+                              onChange={(e) => setAiCategory(e.target.value)}
+                              className="w-full p-3 bg-north-bg border-2 border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
+                            >
+                              <option value="Video Editing">Video Editing</option>
+                              <option value="VFX & Compositing">VFX & Compositing</option>
+                              <option value="Motion Graphics">Motion Graphics</option>
+                              <option value="Workflow">Workflow</option>
+                              <option value="Web & AI">Web & AI</option>
+                              <option value="Post Production">Post Production</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="font-heading font-bold text-xs uppercase text-north-black block mb-1">
+                              Target Word Count
+                            </label>
+                            <select
+                              value={aiWordCount}
+                              onChange={(e) => setAiWordCount(Number(e.target.value))}
+                              className="w-full p-3 bg-north-bg border-2 border-north-black text-xs font-heading font-bold uppercase cursor-pointer"
+                            >
+                              <option value={1000}>~1,000 words (Standard Guide)</option>
+                              <option value={1500}>~1,500 words (In-Depth Guide)</option>
+                              <option value={2000}>~2,000 words (Definitive #1 Pillar)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-north-black/20 flex items-center justify-end">
+                          <button
+                            type="button"
+                            disabled={isGeneratingBrief || !aiKeyword.trim()}
+                            onClick={handleGenerateAIBrief}
+                            className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-black font-heading font-extrabold text-xs uppercase py-3 px-6 shadow-[4px_4px_0px_0px_rgba(200,255,0,1)] inline-flex items-center gap-2"
+                          >
+                            {isGeneratingBrief ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                <span>Analyzing Search Intent...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4 text-north-lime" />
+                                <span>Generate Strategic Content Brief →</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STAGE 2: STRATEGIC CONTENT BRIEF PREVIEW */}
+                {aiActiveStage === 'brief' && aiBrief && (
+                  <div className="space-y-6">
+                    <div className="border-2 border-north-black bg-white p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-north-black pb-4">
+                        <div>
+                          <span className="bg-north-lime text-black font-heading font-black text-[10px] uppercase px-2.5 py-0.5 border border-north-black">
+                            PHASE 1 STRATEGY BRIEF
+                          </span>
+                          <h3 className="font-heading font-black text-2xl uppercase text-north-black mt-1">
+                            Strategic Content Brief: {aiBrief.keyword}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setAiActiveStage('input')}
+                            className="btn-north bg-white text-black text-xs font-heading font-bold uppercase py-2 px-3 border border-black"
+                          >
+                            Edit Keyword
+                          </button>
+                          <button
+                            onClick={handleGenerateAIPost}
+                            disabled={isGeneratingPost}
+                            className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-black text-xs font-heading font-extrabold uppercase py-2.5 px-5 shadow-[3px_3px_0px_0px_rgba(200,255,0,1)] inline-flex items-center gap-1.5"
+                          >
+                            {isGeneratingPost ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                <span>Writing Full Article...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Generate Full Blog Post →</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Brief Key Matrices Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 border border-north-black bg-north-bg space-y-1">
+                          <span className="text-[10px] font-heading font-extrabold uppercase text-north-gray block">User Search Intent</span>
+                          <span className="bg-north-black text-north-lime text-xs font-heading font-bold uppercase px-2 py-0.5 inline-block">
+                            {aiBrief.userIntent}
+                          </span>
+                          <p className="text-xs text-north-black leading-tight pt-1">{aiBrief.intentExplanation}</p>
+                        </div>
+
+                        <div className="p-4 border border-north-black bg-north-bg space-y-1">
+                          <span className="text-[10px] font-heading font-extrabold uppercase text-north-gray block">Target Audience Level</span>
+                          <span className="bg-white border border-north-black text-xs font-heading font-bold uppercase px-2 py-0.5 inline-block text-north-black">
+                            {aiBrief.targetAudience.expertiseLevel}
+                          </span>
+                          <p className="text-xs text-north-black leading-tight pt-1">{aiBrief.targetAudience.demographics}</p>
+                        </div>
+
+                        <div className="p-4 border border-north-black bg-north-bg space-y-1">
+                          <span className="text-[10px] font-heading font-extrabold uppercase text-north-gray block">Creativity Rating</span>
+                          <span className="bg-north-lime text-black text-xs font-heading font-bold uppercase px-2 py-0.5 inline-block">
+                            {aiBrief.creativityLevel.score} / 10 Score
+                          </span>
+                          <p className="text-xs text-north-black leading-tight pt-1">{aiBrief.creativityLevel.rationale}</p>
+                        </div>
+                      </div>
+
+                      {/* Critical Points & Key Takeaways */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="border border-north-black bg-white p-4 space-y-3">
+                          <h4 className="font-heading font-extrabold text-xs uppercase text-north-black flex items-center gap-1.5">
+                            <CheckCircle className="w-3.5 h-3.5 text-north-lime-dark" />
+                            <span>Critical Body Sections (Proven Hierarchy)</span>
+                          </h4>
+                          <ul className="space-y-2 text-xs font-body text-north-black">
+                            {aiBrief.criticalPoints.map((pt, i) => (
+                              <li key={i} className="flex items-start space-x-2">
+                                <span className="bg-north-black text-white font-mono text-[10px] px-1.5 py-0.2 shrink-0">
+                                  {i + 1}
+                                </span>
+                                <span>{pt}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="border border-north-black bg-white p-4 space-y-3">
+                          <h4 className="font-heading font-extrabold text-xs uppercase text-north-black flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-north-lime-dark" />
+                            <span>Pre-Draft Key Takeaways (Top Callout)</span>
+                          </h4>
+                          <ul className="space-y-2 text-xs font-body text-north-black">
+                            {aiBrief.keyTakeaways.map((takeaway, i) => (
+                              <li key={i} className="flex items-start space-x-2 bg-north-lime/10 p-2 border border-north-black/20">
+                                <Check className="w-3.5 h-3.5 text-green-700 shrink-0 mt-0.5" />
+                                <span className="font-medium">{takeaway}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Standalone Questions to Answer as Headings */}
+                      <div className="border border-north-black bg-white p-4 space-y-3">
+                        <h4 className="font-heading font-extrabold text-xs uppercase text-north-black">
+                          Specific Standalone H2 / H3 Search Queries to Rank
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {aiBrief.specificQuestions.map((q, i) => (
+                            <div key={i} className="p-2.5 bg-north-bg border border-north-black text-xs font-heading font-bold uppercase text-north-black">
+                              ❓ {q}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Extractable AI Citations */}
+                      <div className="border border-north-black bg-north-black text-white p-4 space-y-2 shadow-[3px_3px_0px_0px_rgba(200,255,0,1)]">
+                        <span className="bg-north-lime text-black font-heading font-black text-[9px] uppercase px-2 py-0.5 border border-white inline-block">
+                          AI CITATION OPTIMIZATION
+                        </span>
+                        <h4 className="font-heading font-bold text-xs uppercase text-white">
+                          Key Extractable Sentences for Perplexity & ChatGPT:
+                        </h4>
+                        <ul className="space-y-1.5 text-xs text-gray-300 font-mono">
+                          {aiBrief.aiCitationSentences.map((sent, i) => (
+                            <li key={i} className="border-l-2 border-north-lime pl-2.5 py-0.5">
+                              "{sent}"
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STAGE 3: FULL RANK-READY BLOG POST PREVIEW */}
+                {aiActiveStage === 'post' && aiGeneratedPost && (
+                  <div className="space-y-6">
+                    <div className="border-2 border-north-black bg-white p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-north-black pb-4">
+                        <div>
+                          <span className="bg-north-lime text-black font-heading font-black text-[10px] uppercase px-2.5 py-0.5 border border-north-black">
+                            PHASE 2 GENERATED ARTICLE
+                          </span>
+                          <h3 className="font-heading font-black text-2xl uppercase text-north-black mt-1">
+                            {aiGeneratedPost.title}
+                          </h3>
+                          <p className="text-xs text-north-gray italic mt-0.5">
+                            Meta Description: "{aiGeneratedPost.metaDescription}"
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setAiActiveStage('brief')}
+                            className="btn-north bg-white text-black text-xs font-heading font-bold uppercase py-2 px-3 border border-black"
+                          >
+                            Back to Brief
+                          </button>
+                          <button
+                            onClick={handleLoadAIPostIntoEditor}
+                            className="btn-north bg-north-lime text-black hover:bg-north-black hover:text-north-lime text-xs font-heading font-extrabold uppercase py-2.5 px-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] inline-flex items-center gap-2"
+                          >
+                            <Send className="w-4 h-4" />
+                            <span>Load into Studio Editor & Audit →</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Markdown Raw Code Preview */}
+                      <div className="border-2 border-north-black bg-north-bg p-4 max-h-[450px] overflow-y-auto font-mono text-xs leading-relaxed text-north-black whitespace-pre-wrap">
+                        {aiGeneratedPost.markdownContent}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* JSON-LD SCHEMA VIEWER MODAL */}
+        {isSchemaModalOpen && (
+          <div className="fixed inset-0 z-50 bg-north-black/85 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-sm">
+            <div className="border-2 border-north-black bg-white w-full max-w-2xl shadow-[12px_12px_0px_0px_rgba(200,255,0,1)]">
+              <div className="border-b border-north-black p-5 bg-north-bg flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Code className="w-5 h-5 text-north-lime-dark" />
+                  <h3 className="font-heading font-extrabold text-lg uppercase">
+                    Google & AI Search JSON-LD Schema
+                  </h3>
+                </div>
+                <button onClick={() => setIsSchemaModalOpen(false)} className="btn-north bg-white text-black py-1 px-3">
+                  Close
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-xs text-north-gray">
+                  This structured metadata includes <strong>BlogPosting</strong> and <strong>FAQPage</strong> Schema to earn Featured Snippets and AI citations.
+                </p>
+                <div className="border-2 border-north-black bg-neutral-900 text-green-400 p-4 max-h-80 overflow-y-auto font-mono text-xs leading-relaxed">
+                  <pre>{generatePostSchemaJsonLd({
+                    id: currentPost.id || 'article',
+                    title: currentPost.title || 'Article Title',
+                    excerpt: currentPost.excerpt || '',
+                    content: currentPost.content || '',
+                    author: currentPost.author || 'SM SAAD',
+                    date: currentPost.date || new Date().toISOString().slice(0, 10),
+                    image: currentPost.image || '/assets/images/works1.jpg',
+                    category: currentPost.category || 'Video Editing'
+                  }).jsonString}</pre>
+                </div>
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button
+                    onClick={handleCopySchemaJson}
+                    className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-black text-xs font-heading font-extrabold uppercase py-2.5 px-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    {copiedSchema ? 'Copied to Clipboard!' : 'Copy JSON-LD Code'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
