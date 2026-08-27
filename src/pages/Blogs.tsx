@@ -203,6 +203,9 @@ export const Blogs: React.FC = () => {
                 <img
                   src={featuredPost.image}
                   alt={featuredPost.title}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/assets/images/works1.jpg';
+                  }}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute top-4 left-4 flex gap-2">
@@ -401,6 +404,9 @@ export const Blogs: React.FC = () => {
                       <img
                         src={blog.image}
                         alt={blog.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/assets/images/works1.jpg';
+                        }}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                       <span className="absolute top-3 left-3 bg-north-lime text-north-black font-heading font-bold text-[11px] uppercase px-2.5 py-1 border border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -477,6 +483,9 @@ export const Blogs: React.FC = () => {
                       <img
                         src={blog.image}
                         alt={blog.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/assets/images/works1.jpg';
+                        }}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                       <span className="absolute top-2 left-2 bg-north-lime text-north-black font-heading font-bold text-[10px] uppercase px-2 py-0.5 border border-north-black">

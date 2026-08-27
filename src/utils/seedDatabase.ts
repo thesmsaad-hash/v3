@@ -7,32 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { defaultDigitalAssets } from './assetStorage';
 import { blogsData } from '../data/siteData';
-
-const DEFAULT_CONTENT = (title: string, excerpt: string) => `## Executive Overview
-
-${excerpt}
-
-## Introduction
-
-As a **Video Editor, VFX Compositing Artist & Web Developer**, creating high-impact content requires combining narrative pacing, visual polish, sound cues, and modern technological tools.
-
-## Key Principles & Techniques
-
-1. **Focus on Story First**: Every edit, transition, and effect should support the overarching message.
-2. **Attention to Detail**: Subtle color adjustments, audio leveling, and edge compositing elevate production quality.
-3. **Embrace Technology**: Utilizing modern software and AI workflows accelerates creative experimentation.
-
-> "Good editing and compositing should feel seamless — guiding the viewer's attention without distracting from the story."
-
-## Workflow Summary
-
-- **Planning**: Define visual goals, structure, and media organization.
-- **Execution**: Cut, composite, animate, and grade.
-- **Finishing**: Sound design, subtitles, and platform-specific exports.
-
----
-*Published on smsaad.online by SM SAAD.*
-`;
+import { richBlogContents } from './blogStorage';
 
 export const seedSupabaseIfEmpty = async (): Promise<void> => {
   try {
@@ -58,7 +33,7 @@ export const seedSupabaseIfEmpty = async (): Promise<void> => {
         title: b.title,
         category: b.category,
         excerpt: b.excerpt,
-        content: DEFAULT_CONTENT(b.title, b.excerpt),
+        content: richBlogContents[b.id] || richBlogContents['1'],
         read_time: b.readTime,
         date: b.date,
         image: b.image,

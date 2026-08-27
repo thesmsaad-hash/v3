@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { SEO } from '../components/SEO';
-import { getStoredBlogPosts, ExtendedBlogPost } from '../utils/blogStorage';
+import { getStoredBlogPosts, syncBlogPostsFromSupabase, ExtendedBlogPost } from '../utils/blogStorage';
 import { speechEngine } from '../utils/speechEngine';
 import { addNewsletterSubscriber } from '../utils/subscriberStorage';
 import { generatePostSchemaJsonLd } from '../utils/aiBlogWorkflow';
@@ -45,6 +45,7 @@ interface TableOfContentItem {
 export const BlogPostDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<ExtendedBlogPost | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [relatedPosts, setRelatedPosts] = useState<ExtendedBlogPost[]>([]);
   const [prevPost, setPrevPost] = useState<ExtendedBlogPost | null>(null);
   const [nextPost, setNextPost] = useState<ExtendedBlogPost | null>(null);
@@ -61,16 +62,44 @@ export const BlogPostDetail: React.FC = () => {
   const [newsletterDone, setNewsletterDone] = useState(false);
 
   useEffect(() => {
-    const allPosts = getStoredBlogPosts();
-    const index = allPosts.findIndex((p) => p.id === id);
-    if (index >= 0) {
-      const current = allPosts[index];
-      setPost(current);
-      setRelatedPosts(allPosts.filter((p) => p.id !== id && p.status === 'published').slice(0, 3));
-      setPrevPost(index > 0 ? allPosts[index - 1] : null);
-      setNextPost(index < allPosts.length - 1 ? allPosts[index + 1] : null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    let isMounted = true;
+
+    const updatePostState = (allPosts: ExtendedBlogPost[]) => {
+      if (!isMounted) return false;
+      const found = allPosts.find((p) => String(p.id).trim() === String(id).trim());
+      if (found) {
+        setPost(found);
+        setRelatedPosts(allPosts.filter((p) => String(p.id) !== String(id) && p.status === 'published').slice(0, 3));
+        const index = allPosts.findIndex((p) => String(p.id) === String(id));
+        setPrevPost(index > 0 ? allPosts[index - 1] : null);
+        setNextPost(index >= 0 && index < allPosts.length - 1 ? allPosts[index + 1] : null);
+        setIsLoading(false);
+        return true;
+      }
+      return false;
+    };
+
+    const localPosts = getStoredBlogPosts();
+    const foundLocally = updatePostState(localPosts);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Sync from Supabase for fresh data
+    syncBlogPostsFromSupabase()
+      .then((remote) => {
+        if (!isMounted) return;
+        if (remote && remote.length > 0) {
+          const foundRemotely = updatePostState(remote);
+          if (foundRemotely) return;
+        }
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   // Clean up speech on unmount
@@ -90,11 +119,11 @@ export const BlogPostDetail: React.FC = () => {
       }
 
       // Detect active heading
-      const headings = document.querySelectorAll('h2[id], h3[id]');
+      const headings = document.querySelectorAll('[id].scroll-mt-28, h1[id], h2[id], h3[id]');
       let currentActive = '';
       headings.forEach((h) => {
         const rect = h.getBoundingClientRect();
-        if (rect.top <= 160) {
+        if (rect.top <= 180) {
           currentActive = h.id;
         }
       });
@@ -156,7 +185,7 @@ export const BlogPostDetail: React.FC = () => {
       speechEngine.stop();
       setIsSpeaking(false);
     } else if (post) {
-      const fullTextToRead = `${post.title}. ${post.excerpt}. ${post.content || ''}`;
+      const fullTextToRead = `${post.title || ''}. ${post.excerpt || ''}. ${post.content || ''}`;
       setIsSpeaking(true);
       speechEngine.speak(fullTextToRead, {
         onStart: () => setIsSpeaking(true),
@@ -199,23 +228,53 @@ export const BlogPostDetail: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (!post) {
+  if (isLoading && !post) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4 bg-north-bg text-north-black">
-        <h2 className="font-heading text-3xl font-bold uppercase">Article Not Found</h2>
-        <p className="text-north-gray text-sm">The article you are looking for does not exist or has been moved.</p>
-        <Link to="/blogs" className="btn-north bg-north-black text-north-lime">
-          Return to All Articles
-        </Link>
+        <div className="w-10 h-10 border-4 border-north-black border-t-north-lime rounded-full animate-spin"></div>
+        <p className="font-heading font-bold text-xs uppercase tracking-wider text-north-gray">
+          Loading Article...
+        </p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-[75vh] flex flex-col items-center justify-center space-y-6 text-center px-4 py-16 bg-north-bg text-north-black">
+        <SEO
+          title="Article Not Found"
+          description="The requested blog article was not found or has been moved."
+        />
+        <div className="border-2 border-north-black bg-white p-8 sm:p-12 max-w-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-5">
+          <span className="bg-north-lime text-north-black font-heading font-extrabold text-[10px] uppercase px-2.5 py-1 border border-north-black inline-block">
+            404 — ARTICLE NOT FOUND
+          </span>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold uppercase text-north-black">
+            Article Not Found
+          </h2>
+          <p className="text-north-gray text-xs sm:text-sm leading-relaxed">
+            The article with ID <span className="bg-neutral-200 px-1.5 py-0.5 font-mono text-black font-bold">"{id}"</span> does not exist or has been archived.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/blogs" className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs uppercase font-bold w-full sm:w-auto">
+              ← Browse All Articles
+            </Link>
+            <Link to="/" className="btn-north bg-white text-north-black hover:bg-north-bg text-xs uppercase font-bold w-full sm:w-auto">
+              Home Page
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   // Word count & read time
-  const wordCount = (post.content || post.excerpt).split(/\s+/).length;
+  const wordCount = (post.content || post.excerpt || '').split(/\s+/).filter(Boolean).length;
 
   // Custom Formatted Content Renderer optimized for Vertical Easy Reading & AI Citations
-  const renderFormattedContent = (content: string) => {
+  const renderFormattedContent = (content: string = '') => {
+    if (!content) return [];
     const lines = content.split('\n');
     const elements: React.ReactNode[] = [];
     let inCodeBlock = false;
@@ -568,12 +627,13 @@ export const BlogPostDetail: React.FC = () => {
     return elements;
   };
 
-  // Helper to format bold **text** and internal links in lines
+  // Helper to format bold **text**, inline `code`, and links in lines
   const formatInlineText = (text: string) => {
     // Handle Internal link placeholders like [Internal link: "anchor text" → target]
     let processed = text.replace(/\[Internal link:\s*"([^"]+)"\s*→\s*([^\]]+)\]/g, '[$1](/blogs)');
 
-    const parts = processed.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
+    // Split by bold (**text**), inline code (`code`), and markdown links ([text](url))
+    const parts = processed.split(/(\*\*.*?\*\*|`[^`]+`|\[.*?\]\(.*?\))/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
@@ -582,15 +642,38 @@ export const BlogPostDetail: React.FC = () => {
           </strong>
         );
       }
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+        return (
+          <code key={i} className="bg-neutral-800 text-north-lime px-1.5 py-0.5 font-mono text-xs border border-north-black mx-0.5 inline-block font-semibold">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
       if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
         const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
         if (linkMatch) {
           const anchor = linkMatch[1];
           const href = linkMatch[2];
+          const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//');
+
+          if (isExternal) {
+            return (
+              <a
+                key={i}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
+              >
+                {anchor}
+              </a>
+            );
+          }
+
           return (
             <Link
               key={i}
-              to={href.startsWith('http') ? href : href}
+              to={href}
               className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
             >
               {anchor}
@@ -744,6 +827,9 @@ export const BlogPostDetail: React.FC = () => {
             <img
               src={post.image}
               alt={post.title}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/images/works1.jpg';
+              }}
               className="w-full h-full object-cover object-center max-h-[520px]"
             />
           </div>
