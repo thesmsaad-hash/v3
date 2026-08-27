@@ -44,6 +44,8 @@ interface TableOfContentItem {
 
 export const BlogPostDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+
+  // 1. ALL REACT HOOKS MUST BE DECLARED UNCONDITIONALLY AT THE TOP
   const [post, setPost] = useState<ExtendedBlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [relatedPosts, setRelatedPosts] = useState<ExtendedBlogPost[]>([]);
@@ -61,6 +63,7 @@ export const BlogPostDetail: React.FC = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterDone, setNewsletterDone] = useState(false);
 
+  // Load and sync post state
   useEffect(() => {
     let isMounted = true;
 
@@ -80,7 +83,7 @@ export const BlogPostDetail: React.FC = () => {
     };
 
     const localPosts = getStoredBlogPosts();
-    const foundLocally = updatePostState(localPosts);
+    updatePostState(localPosts);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Sync from Supabase for fresh data
@@ -164,6 +167,24 @@ export const BlogPostDetail: React.FC = () => {
     return items;
   }, [post?.content]);
 
+  // Dynamic JSON-LD Article + FAQ Schema
+  const dynamicSchemas = useMemo(() => {
+    if (!post) return undefined;
+    try {
+      return generatePostSchemaJsonLd(post).combinedSchemas;
+    } catch {
+      return undefined;
+    }
+  }, [post]);
+
+  // Word count calculation
+  const wordCount = useMemo(() => {
+    if (!post) return 0;
+    const text = post.content || post.excerpt || '';
+    return text.split(/\s+/).filter(Boolean).length;
+  }, [post]);
+
+  // 2. HELPER FUNCTIONS & EVENT HANDLERS
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -228,49 +249,62 @@ export const BlogPostDetail: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (isLoading && !post) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4 bg-north-bg text-north-black">
-        <div className="w-10 h-10 border-4 border-north-black border-t-north-lime rounded-full animate-spin"></div>
-        <p className="font-heading font-bold text-xs uppercase tracking-wider text-north-gray">
-          Loading Article...
-        </p>
-      </div>
-    );
-  }
+  // Helper to format bold **text**, inline `code`, and links in lines
+  const formatInlineText = (text: string = '') => {
+    if (!text) return '';
+    let processed = text.replace(/\[Internal link:\s*"([^"]+)"\s*→\s*([^\]]+)\]/g, '[$1](/blogs)');
 
-  if (!post) {
-    return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center space-y-6 text-center px-4 py-16 bg-north-bg text-north-black">
-        <SEO
-          title="Article Not Found"
-          description="The requested blog article was not found or has been moved."
-        />
-        <div className="border-2 border-north-black bg-white p-8 sm:p-12 max-w-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-5">
-          <span className="bg-north-lime text-north-black font-heading font-extrabold text-[10px] uppercase px-2.5 py-1 border border-north-black inline-block">
-            404 — ARTICLE NOT FOUND
-          </span>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold uppercase text-north-black">
-            Article Not Found
-          </h2>
-          <p className="text-north-gray text-xs sm:text-sm leading-relaxed">
-            The article with ID <span className="bg-neutral-200 px-1.5 py-0.5 font-mono text-black font-bold">"{id}"</span> does not exist or has been archived.
-          </p>
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/blogs" className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs uppercase font-bold w-full sm:w-auto">
-              ← Browse All Articles
-            </Link>
-            <Link to="/" className="btn-north bg-white text-north-black hover:bg-north-bg text-xs uppercase font-bold w-full sm:w-auto">
-              Home Page
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const parts = processed.split(/(\*\*.*?\*\*|`[^`]+`|\[.*?\]\(.*?\))/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={i} className="font-extrabold text-north-black bg-north-lime/25 px-1 border-b-2 border-north-black">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+        return (
+          <code key={i} className="bg-neutral-800 text-north-lime px-1.5 py-0.5 font-mono text-xs border border-north-black mx-0.5 inline-block font-semibold">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+        const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
+        if (linkMatch) {
+          const anchor = linkMatch[1];
+          const href = linkMatch[2];
+          const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//');
 
-  // Word count & read time
-  const wordCount = (post.content || post.excerpt || '').split(/\s+/).filter(Boolean).length;
+          if (isExternal) {
+            return (
+              <a
+                key={i}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
+              >
+                {anchor}
+              </a>
+            );
+          }
+
+          return (
+            <Link
+              key={i}
+              to={href}
+              className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
+            >
+              {anchor}
+            </Link>
+          );
+        }
+      }
+      return part;
+    });
+  };
 
   // Custom Formatted Content Renderer optimized for Vertical Easy Reading & AI Citations
   const renderFormattedContent = (content: string = '') => {
@@ -326,7 +360,6 @@ export const BlogPostDetail: React.FC = () => {
 
       // Check for Markdown Table Rows (| col | col |)
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-        // Skip markdown separator line (| --- | --- |)
         if (/^\|[\s\-:]+\|/.test(trimmed) && trimmed.includes('-')) {
           continue;
         }
@@ -341,7 +374,7 @@ export const BlogPostDetail: React.FC = () => {
         flushTable(idx);
       }
 
-      // Handle Markdown Code Blocks (```code```)
+      // Handle Markdown Code Blocks
       if (trimmed.startsWith('```')) {
         if (!inCodeBlock) {
           inCodeBlock = true;
@@ -491,7 +524,7 @@ export const BlogPostDetail: React.FC = () => {
 
         if (isKeyTakeawaysSection) {
           elements.push(
-            <div key={idx} id={slug} className="mt-8 mb-4 pt-4 border-t-2 border-north-black/20">
+            <div key={idx} id={slug} className="mt-8 mb-4 pt-4 border-t-2 border-north-black/20 scroll-mt-28">
               <div className="inline-flex items-center gap-2 bg-north-lime text-black font-heading font-black text-xs uppercase px-3 py-1 border-2 border-north-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>KEY TAKEAWAYS & EXECUTIVE SUMMARY</span>
@@ -627,69 +660,47 @@ export const BlogPostDetail: React.FC = () => {
     return elements;
   };
 
-  // Helper to format bold **text**, inline `code`, and links in lines
-  const formatInlineText = (text: string) => {
-    // Handle Internal link placeholders like [Internal link: "anchor text" → target]
-    let processed = text.replace(/\[Internal link:\s*"([^"]+)"\s*→\s*([^\]]+)\]/g, '[$1](/blogs)');
+  // 3. CONDITIONAL RENDERING (AFTER ALL HOOKS ARE INITIALIZED)
+  if (isLoading && !post) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4 bg-north-bg text-north-black">
+        <div className="w-10 h-10 border-4 border-north-black border-t-north-lime rounded-full animate-spin"></div>
+        <p className="font-heading font-bold text-xs uppercase tracking-wider text-north-gray">
+          Loading Article...
+        </p>
+      </div>
+    );
+  }
 
-    // Split by bold (**text**), inline code (`code`), and markdown links ([text](url))
-    const parts = processed.split(/(\*\*.*?\*\*|`[^`]+`|\[.*?\]\(.*?\))/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={i} className="font-extrabold text-north-black bg-north-lime/25 px-1 border-b-2 border-north-black">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
-        return (
-          <code key={i} className="bg-neutral-800 text-north-lime px-1.5 py-0.5 font-mono text-xs border border-north-black mx-0.5 inline-block font-semibold">
-            {part.slice(1, -1)}
-          </code>
-        );
-      }
-      if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
-        const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
-        if (linkMatch) {
-          const anchor = linkMatch[1];
-          const href = linkMatch[2];
-          const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//');
-
-          if (isExternal) {
-            return (
-              <a
-                key={i}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
-              >
-                {anchor}
-              </a>
-            );
-          }
-
-          return (
-            <Link
-              key={i}
-              to={href}
-              className="text-north-black font-extrabold underline decoration-north-lime decoration-2 underline-offset-2 hover:bg-north-lime hover:no-underline px-0.5 transition-colors"
-            >
-              {anchor}
+  if (!post) {
+    return (
+      <div className="min-h-[75vh] flex flex-col items-center justify-center space-y-6 text-center px-4 py-16 bg-north-bg text-north-black">
+        <SEO
+          title="Article Not Found"
+          description="The requested blog article was not found or has been moved."
+        />
+        <div className="border-2 border-north-black bg-white p-8 sm:p-12 max-w-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-5">
+          <span className="bg-north-lime text-north-black font-heading font-extrabold text-[10px] uppercase px-2.5 py-1 border border-north-black inline-block">
+            404 — ARTICLE NOT FOUND
+          </span>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold uppercase text-north-black">
+            Article Not Found
+          </h2>
+          <p className="text-north-gray text-xs sm:text-sm leading-relaxed">
+            The article with ID <span className="bg-neutral-200 px-1.5 py-0.5 font-mono text-black font-bold">"{id}"</span> does not exist or has been archived.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/blogs" className="btn-north bg-north-black text-north-lime hover:bg-north-lime hover:text-north-black text-xs uppercase font-bold w-full sm:w-auto">
+              ← Browse All Articles
             </Link>
-          );
-        }
-      }
-      return part;
-    });
-  };
-
-  // Dynamic JSON-LD Article + FAQ Schema
-  const dynamicSchemas = useMemo(() => {
-    if (!post) return undefined;
-    return generatePostSchemaJsonLd(post).combinedSchemas;
-  }, [post]);
+            <Link to="/" className="btn-north bg-white text-north-black hover:bg-north-bg text-xs uppercase font-bold w-full sm:w-auto">
+              Home Page
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Theme styling for article container
   const themeBgClass =
@@ -708,7 +719,7 @@ export const BlogPostDetail: React.FC = () => {
         description={post.excerpt}
         keywords={`${post.category}, SM SAAD Article, Video Editing, VFX compositing, ${post.title}`}
         canonical={`https://smsaad.online/blogs/${post.id}`}
-        ogImage={post.image?.startsWith('http') ? post.image : `https://smsaad.online${post.image}`}
+        ogImage={post.image?.startsWith('http') ? post.image : `https://smsaad.online${post.image || '/assets/images/works1.jpg'}`}
         ogType="article"
         schema={dynamicSchemas}
       />
@@ -756,14 +767,16 @@ export const BlogPostDetail: React.FC = () => {
           </h1>
 
           {/* Executive Overview Lead Excerpt Box */}
-          <div className="border-l-4 border-north-lime bg-north-bg/80 p-5 border border-north-black/20 shadow-xs">
-            <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-north-lime-dark block mb-1">
-              EXECUTIVE OVERVIEW
-            </span>
-            <p className="text-north-black font-body text-base sm:text-xl leading-relaxed italic font-medium">
-              "{post.excerpt}"
-            </p>
-          </div>
+          {post.excerpt && (
+            <div className="border-l-4 border-north-lime bg-north-bg/80 p-5 border border-north-black/20 shadow-xs">
+              <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-north-lime-dark block mb-1">
+                EXECUTIVE OVERVIEW
+              </span>
+              <p className="text-north-black font-body text-base sm:text-xl leading-relaxed italic font-medium">
+                "{post.excerpt}"
+              </p>
+            </div>
+          )}
 
           {/* Metadata & Quick Reader Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-north-dark-sand">
@@ -772,6 +785,9 @@ export const BlogPostDetail: React.FC = () => {
                 <img
                   src="/assets/images/hero.jpg"
                   alt="SM SAAD"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/assets/images/hero.jpg';
+                  }}
                   className="w-7 h-7 rounded-full border border-north-black object-cover"
                 />
                 <span>By {post.author || 'SM SAAD'}</span>
@@ -840,9 +856,7 @@ export const BlogPostDetail: React.FC = () => {
       <section className="max-w-[1300px] mx-auto px-4 sm:px-6 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* ======================================================== */}
-          {/* LEFT: MAIN VERTICAL READING CONTENT (Easy-to-Read Column) */}
-          {/* ======================================================== */}
+          {/* LEFT: MAIN VERTICAL READING CONTENT */}
           <div className="lg:col-span-8 space-y-6">
             <div className={`border-2 border-north-black p-6 sm:p-10 md:p-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${themeBgClass} ${themeTextClass}`}>
               
@@ -855,7 +869,6 @@ export const BlogPostDetail: React.FC = () => {
 
                 {/* Font Size & Theme Toggles */}
                 <div className="flex items-center space-x-3">
-                  {/* Theme Switcher */}
                   <div className="flex items-center border border-north-black bg-white p-0.5 text-[10px] font-heading font-bold uppercase">
                     <button
                       onClick={() => setReadingTheme('default')}
@@ -873,7 +886,6 @@ export const BlogPostDetail: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Font Size */}
                   <div className="flex items-center space-x-1 font-heading font-bold text-xs">
                     <span className="text-north-gray mr-1 uppercase text-[10px]">Font:</span>
                     <button
@@ -953,6 +965,9 @@ export const BlogPostDetail: React.FC = () => {
                 <img
                   src="/assets/images/hero.jpg"
                   alt="SM SAAD"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/assets/images/hero.jpg';
+                  }}
                   className="w-16 h-16 rounded-full border-2 border-north-black object-cover shrink-0"
                 />
                 <div className="space-y-1">
@@ -1053,9 +1068,7 @@ export const BlogPostDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* ======================================================== */}
-          {/* RIGHT: STICKY EDITORIAL SIDEBAR (TOC + Widgets)          */}
-          {/* ======================================================== */}
+          {/* RIGHT: STICKY EDITORIAL SIDEBAR */}
           <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
             
             {/* AUDIO PLAYER QUICK WIDGET */}
@@ -1210,6 +1223,9 @@ export const BlogPostDetail: React.FC = () => {
                     <img
                       src={rel.image}
                       alt={rel.title}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/assets/images/works1.jpg';
+                      }}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <span className="absolute top-2 left-2 bg-north-lime text-north-black font-heading font-bold text-[10px] uppercase px-2 py-0.5 border border-north-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">

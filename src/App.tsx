@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { CustomCursor } from './components/CustomCursor';
 import { ChatAgent } from './components/ChatAgent/ChatAgent';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
 import { Home } from './pages/Home';
@@ -40,27 +41,29 @@ export const App: React.FC = () => {
       <div className="flex flex-col min-h-screen bg-north-bg text-north-black">
         <Header />
         <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/resume" element={<Resume />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/services/:id" element={<ServiceDetail />} />
-            <Route path="/works" element={<Works />} />
-            <Route path="/assets" element={<DigitalAssetsStore />} />
-            <Route path="/store" element={<DigitalAssetsStore />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/blogs" element={<Blogs />} />
-            <Route path="/blogs/:id" element={<BlogPostDetail />} />
-            <Route path="/agent" element={<AIAgentPage />} />
-            <Route path="/ai" element={<AIAgentPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/blogs" element={<AdminDashboard />} />
-            <Route path="/admin/assets" element={<AdminDashboard />} />
-            <Route path="/faqs" element={<Faqs />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/resume" element={<Resume />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/services/:id" element={<ServiceDetail />} />
+              <Route path="/works" element={<Works />} />
+              <Route path="/assets" element={<DigitalAssetsStore />} />
+              <Route path="/store" element={<DigitalAssetsStore />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/blogs" element={<Blogs />} />
+              <Route path="/blogs/:id" element={<BlogPostDetail />} />
+              <Route path="/agent" element={<AIAgentPage />} />
+              <Route path="/ai" element={<AIAgentPage />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/blogs" element={<AdminDashboard />} />
+              <Route path="/admin/assets" element={<AdminDashboard />} />
+              <Route path="/faqs" element={<Faqs />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
         <Footer />
         {/* Global Floating AI Intelligence Agent */}
