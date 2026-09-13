@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const getEnvVar = (viteKey: string, nextKey: string, fallback: string): string => {
   const env = (import.meta as any).env || {};
-  return env[viteKey] || env[nextKey] || process.env[viteKey] || process.env[nextKey] || fallback;
+  const processEnv = typeof process !== 'undefined' ? process.env : {};
+  return env[viteKey] || env[nextKey] || processEnv[viteKey] || processEnv[nextKey] || fallback;
 };
 
 const supabaseUrl = getEnvVar(

@@ -2284,6 +2284,44 @@ Write your article introduction here explaining key concepts, goals, and visual 
                 </div>
 
                 <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-heading font-bold text-xs uppercase block">Asset File / Download URL *</label>
+                    <label className="cursor-pointer text-[10px] font-heading font-bold uppercase bg-north-black text-north-lime px-2 py-0.5 border border-north-black hover:bg-north-lime hover:text-north-black">
+                      Upload PC File (.zip/.rar)
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert('Warning: Uploading files larger than 5MB may exceed local storage quotas. Consider hosting large files on Google Drive/Dropbox and pasting the link instead.');
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (uploadEv) => {
+                              const result = uploadEv.target?.result as string;
+                              if (result) {
+                                setCurrentAsset({ ...currentAsset, downloadUrl: result });
+                                showNotify('Asset file attached!');
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Paste external link (Google Drive, Dropbox) or click Upload PC File"
+                    value={currentAsset.downloadUrl || ''}
+                    onChange={(e) => setCurrentAsset({ ...currentAsset, downloadUrl: e.target.value })}
+                    className="w-full p-3 bg-north-bg border border-north-black text-xs font-mono"
+                  />
+                </div>
+
+                <div>
                   <label className="font-heading font-bold text-xs uppercase block mb-1">Asset Description *</label>
                   <textarea
                     rows={3}
